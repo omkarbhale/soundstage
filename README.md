@@ -52,7 +52,9 @@ python3 repair.py      narration.mp3 raw.json transcript.json   # fix collapsed 
 ```
 
 `verify.py` and `repair.py` are not optional. Both catch faults that fail silently and leave
-a module looking finished - a dropped sentence, and cues landing on the wrong beat. Read
+a module looking finished - a dropped clause, and cues landing on the wrong beat. Because the
+drop is non-deterministic, `verify.py` certifies the audio in hand and not the script: run it
+again on every regeneration. Read
 [ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) before skipping either.
 
 ## Status
