@@ -1,0 +1,32 @@
+# This file is a safety device, not housekeeping.
+#
+# soundstage is a PUBLIC repository. ADR-0002 (docs/adr/0002-the-repo-is-public-and-holds-no-content.md)
+# records that content never enters it: the material this toolkit is pointed at is not
+# ours to publish, and it is gitignored from the first commit, before there is anything
+# to leak. ADR-0005 records that the OpenAI key lives in .env and nowhere else.
+#
+# Read both ADRs before loosening anything here.
+#
+# The rules are extension-based and .env-based on purpose. The repo's directory layout
+# is deliberately undecided, so nothing here depends on a folder name and nothing has to
+# be revisited when a layout is chosen. Extensions are written as bracket classes because
+# gitignore matching is case-sensitive on Linux, and cameras and exporters happily
+# produce .MP4 and .PDF.
+
+# Secrets - the OpenAI key lives here and nowhere else (ADR-0005)
+.env
+.env.*
+
+# Source documents (ADR-0002)
+*.[dD][oO][cC]
+*.[dD][oO][cC][xX]
+*.[pP][dD][fF]
+*.[pP][pP][tT][xX]
+
+# Rendered video and generated audio (ADR-0002)
+*.[mM][pP]4
+*.[mM][oO][vV]
+*.[wW][eE][bB][mM]
+*.[wW][aA][vV]
+*.[mM][pP]3
+*.[mM]4[aA]
