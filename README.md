@@ -57,6 +57,23 @@ drop is non-deterministic, `verify.py` certifies the audio in hand and not the s
 again on every regeneration. Read
 [ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) before skipping either.
 
+## Ending a module
+
+A composition ends a measured couple of seconds after the last word, never a guessed one.
+`speech_end.py` takes that measurement:
+
+```
+python3 speech_end.py voice.mp3        # -> the second the last word ends
+```
+
+It exists because the obvious measurement is wrong in a way that fails silently.
+`silencedetect` reports where each silence *starts*, so the last one is the end of speech
+only if the audio actually ends in silence. Module 7's narration finished on its final word,
+so the last hit was a pause six seconds earlier, mid-script - and a closing card built on
+that number sits there in silence, which is the defect the rule exists to prevent. This
+refuses to answer rather than return that number, so give the voice track a tail
+(`ffmpeg -af apad`) before measuring; the last word wants room to decay anyway.
+
 ## Status
 
 The design record, the speech adapter and the narration guards. There is no build step:
