@@ -77,6 +77,15 @@ Where a phrase genuinely repeats, name the occurrence - `t("...", 2)` - and it p
 you have said which. It reads the generator rather than a list of phrases kept by hand, since
 a list kept by hand goes stale; it found latent ambiguity in four of the first eight modules.
 
+What it reports is ambiguity, not a defect, and the two are worth telling apart before you
+touch a timing. The five it flagged across modules 2, 3, 4 and 8 were **all already correct**:
+in each one the first match was the occurrence the scene was written around, confirmed by
+sampling the finished render either side of both candidates. Repeats cluster because a module
+says its key phrase once in the scene that defines it and again in the scene that builds on
+it - and the defining scene comes first. So read the scene, check the render, then name what
+you found: `t("...", 1)` as readily as `t("...", 2)`. Naming the occurrence records the answer
+rather than changing it - a cue that was right keeps the time it already had.
+
 ## Ending a module
 
 A composition ends a measured couple of seconds after the last word, never a guessed one.

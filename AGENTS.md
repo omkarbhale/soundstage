@@ -17,7 +17,9 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **A cue phrase must name one moment.** `cue_check.py` (README, "Cueing a reveal") proves
   every phrase a composition cues on occurs exactly once in the narration. The lookup takes
   the first match, so a repeated phrase silently fires a reveal a scene early - and the
-  frame looks finished either way.
+  frame looks finished either way. What it flags is ambiguity, not a proven defect:
+  confirm against the render before touching a timing, then name the occurrence you
+  found - the first match is usually the intended one.
 - **A module ends a measured two seconds after the last word.** Take the measurement with
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
