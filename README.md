@@ -36,8 +36,26 @@ the words it deliberately avoids.
 - [0004](docs/adr/0004-the-repo-owns-every-path.md) - The repo owns every path, the agent invents none
 - [0005](docs/adr/0005-openai-for-speech.md) - OpenAI for speech, though the engine does not support it
 - [0006](docs/adr/0006-the-project-is-called-soundstage.md) - The project is called soundstage
+- [0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) - The narration guards live in the studio
+
+## Making narration
+
+Narration is generated once, in a single pass, and every on-screen reveal is cued from the
+per-word timings of that real audio ([ADR-0003](docs/adr/0003-pace-visuals-to-the-voice.md)).
+Four scripts, each taking explicit paths:
+
+```
+node tts.mjs        narration.txt narration.mp3 --voice sage --instructions "..."
+python3 transcribe.py  narration.mp3 raw.json
+python3 verify.py      narration.txt raw.json          # every script word reached the audio
+python3 repair.py      narration.mp3 raw.json transcript.json   # fix collapsed word runs
+```
+
+`verify.py` and `repair.py` are not optional. Both catch faults that fail silently and leave
+a module looking finished - a dropped sentence, and cues landing on the wrong beat. Read
+[ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) before skipping either.
 
 ## Status
 
-The design record is all that exists so far. There is no build, no usage flow and
-nothing to run yet.
+The design record, the speech adapter and the narration guards. There is no build step:
+a module is a directory of its own with a composition in it, and the engine renders it.
