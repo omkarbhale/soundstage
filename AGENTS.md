@@ -14,6 +14,9 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   animation ([ADR-0003](docs/adr/0003-pace-visuals-to-the-voice.md)). The chain and the two
   mandatory guards are in the README under "Making narration"; the guards catch faults that
   fail **silently** ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
+  A deletion `verify.py` reports is not yet a proven drop - a lone function word lost at an
+  elision can be the full-file transcript mishearing, not the audio. `verify.py` says how to
+  tell, and it is the same window transcription `repair.py` already does.
 - **A cue phrase must name one moment.** `cue_check.py` (README, "Cueing a reveal") proves
   every phrase a composition cues on occurs exactly once in the narration. The lookup takes
   the first match, so a repeated phrase silently fires a reveal a scene early - and the

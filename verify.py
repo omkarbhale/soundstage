@@ -27,6 +27,17 @@
 #    next, unchanged. A clean pass certifies the audio in hand and says nothing
 #    about the script, so never carry a previous pass forward.
 #
+# One deletion is worth proving before you act on it, found remaking module 1.
+# This diffs against the FULL-FILE transcript, and whisper elides across a word
+# boundary there in a way it does not on a short window: "No attacker is involved
+# anywhere" came back as "no attackers involved anywhere", which lands here as a
+# deleted "is" because norm() folds the trailing s. Transcribing those five
+# seconds on their own read the words back correctly - nothing was ever missing
+# from the audio. So when the whole of a failure is one function word at a
+# contraction or an elision, re-transcribe that window before regenerating
+# (repair.py already carries the technique). A dropped CLAUSE stays missing when
+# the window is read on its own; a mishearing does not.
+#
 # This is compliance material and a dropped clause is a missing fact. Do not ship
 # a module whose audio is missing one.
 import json, re, sys, unicodedata, difflib
