@@ -57,6 +57,26 @@ drop is non-deterministic, `verify.py` certifies the audio in hand and not the s
 again on every regeneration. Read
 [ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) before skipping either.
 
+## Cueing a reveal
+
+A composition cues each reveal by quoting the narration - `t("Leave it where it is")` - and
+the lookup returns the **first** match. Quote something the narrator says twice and the
+reveal lands on the wrong one, usually a scene early and already drawn when its own scene
+fades in:
+
+```
+python3 cue_check.py transcript.json gen.py     # every cue phrase names one moment
+```
+
+Module 9 cued an arrow on "onto their own laptop" and got the sentence eleven seconds
+earlier, because the same four words close both; the arrow was on screen a whole scene before
+it meant anything and the render was thrown away. Nothing failed and nothing warned - it was
+found by sampling that one frame. Run this before rendering.
+
+Where a phrase genuinely repeats, name the occurrence - `t("...", 2)` - and it passes, because
+you have said which. It reads the generator rather than a list of phrases kept by hand, since
+a list kept by hand goes stale; it found latent ambiguity in four of the first eight modules.
+
 ## Ending a module
 
 A composition ends a measured couple of seconds after the last word, never a guessed one.
