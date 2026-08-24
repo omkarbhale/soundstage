@@ -14,6 +14,10 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   animation ([ADR-0003](docs/adr/0003-pace-visuals-to-the-voice.md)). The chain and the two
   mandatory guards are in the README under "Making narration"; the guards catch faults that
   fail **silently** ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
+- **A module ends a measured two seconds after the last word.** Take the measurement with
+  `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
+  trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
+  obvious `silencedetect` reading is wrong there and wrong silently.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). The key lives in `.env` beside it and
   nowhere else.
