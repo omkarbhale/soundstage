@@ -1,18 +1,34 @@
 # Guard 1: prove the audio contains every word of the script.
 #
-# The speech model silently drops short standalone sentences. On module 1 it
-# dropped "One note on regulation." entirely - no error, no warning, just absent
-# from the audio, and it was caught only by diffing the script against the
-# transcript word for word. This is compliance material and a dropped sentence
-# is a missing fact, so this runs after every narration generation.
+# The speech model silently drops detachable clauses - whatever can be lifted out
+# without breaking the grammar, wherever it sits. Module 1 lost a standalone
+# sentence and read the fault as being about short sentences; module 4 then lost
+# a leading adverbial and two trailing adjuncts, all three INSIDE longer
+# sentences, and elided "dot" from a spoken domain. Long sentences are not safe
+# by being long. No error, no warning: the only way any of it is found is diffing
+# the script against the transcript word for word, which is what this does.
+# ADR-0007 has the full account.
 #
 #   python3 verify.py narration.txt transcript.json
 #
 # Reports every difference and whether the diff is clean. Insertions and
 # deletions are the fault; 1:1 replacements are whisper spelling a number or a
-# proper noun its own way and are not a dropped word. If a fragment does go
-# missing, fold it into an adjacent sentence rather than leaving it standalone
-# and regenerate - do not ship a module whose audio is missing a fact.
+# proper noun its own way, or contracting "here is" to "here's", and are not a
+# dropped word.
+#
+# Two things to do with a failure:
+#
+# 1. Rewrite the fragment so it is structurally undroppable - the words have to
+#    sit in a clause the sentence needs, not in an adjunct that can be lifted out
+#    and leave the grammar intact. Merely joining it to its neighbour does not
+#    work; module 4 proved that.
+# 2. Regenerate, and run this again. The drop is non-deterministic - on module 4
+#    the same sentence survived one generation and lost its closing clause on the
+#    next, unchanged. A clean pass certifies the audio in hand and says nothing
+#    about the script, so never carry a previous pass forward.
+#
+# This is compliance material and a dropped clause is a missing fact. Do not ship
+# a module whose audio is missing one.
 import json, re, sys, unicodedata, difflib
 def norm(s):
     w = re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", s).lower())
