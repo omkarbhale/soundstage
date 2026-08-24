@@ -7,11 +7,15 @@
 #
 # Read both ADRs before loosening anything here.
 #
-# The rules are extension-based and .env-based on purpose. The repo's directory layout
-# is deliberately undecided, so nothing here depends on a folder name and nothing has to
-# be revisited when a layout is chosen. Extensions are written as bracket classes because
-# gitignore matching is case-sensitive on Linux, and cameras and exporters happily
-# produce .MP4 and .PDF.
+# The extension rules are the net that needs no layout: nothing in them depends on a
+# folder name, so they hold however the repo is arranged. Extensions are written as
+# bracket classes because gitignore matching is case-sensitive on Linux, and cameras and
+# exporters happily produce .MP4 and .PDF.
+#
+# Extensions alone are not enough. Content arrives in whatever file type it arrives in -
+# a narration script is a .txt, a plan is a .md - and no list of extensions will catch
+# those without also catching the repo's own writing. So the two directories content
+# actually lands in are ignored whole, by name, and that is the rule ADR-0002 leans on.
 
 # Secrets - the OpenAI key lives here and nowhere else (ADR-0005)
 .env
@@ -22,6 +26,15 @@
 *.[dD][oO][cC][xX]
 *.[pP][dD][fF]
 *.[pP][pP][tT][xX]
+
+# Content directories - ignored whole, whatever the file type (ADR-0002)
+#
+# Source material goes in /inputs/, everything made from it goes in /outputs/. Both are
+# derived from or are material that is not ours to publish, so neither is committable
+# here regardless of extension. Leading slashes anchor these to the repo root: they are
+# these two directories, not any folder anywhere that happens to share the name.
+/inputs/
+/outputs/
 
 # Rendered video and generated audio (ADR-0002)
 *.[mM][pP]4
