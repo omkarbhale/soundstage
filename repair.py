@@ -2,19 +2,19 @@
 #
 #   python3 repair.py narration.mp3 raw.json transcript.json
 #
-# whisper-1 occasionally loses word alignment over a stretch of an otherwise
-# fine file, collapsing ~10 words into one multi-second token. The audio is
-# intact (a window transcription of the same region reads back correctly), so
-# the fix is to re-measure that window and splice its real timings back in.
-# Still real timing from the single-pass narration - just measured twice
-# (ADR-0003: every cue comes from the real audio, never from a hand-timed guess).
+# whisper-1 loses word alignment over a stretch of an otherwise fine file,
+# collapsing a run of ~10 words into one multi-second token. It is reproducible
+# for a given file - re-transcribing it or re-encoding to 16k mono returns the
+# same collapse - while transcribing that window alone reads the words back
+# correctly. The audio is intact, so the fix is to re-measure that window and
+# splice its real timings back in. Still real timing from the single-pass
+# narration, just measured twice (ADR-0003: every cue comes from the real audio,
+# never from a hand-timed guess).
 #
-# On module 1 it turned about ten words into a single 4.48-second "and",
-# reproducibly: three transcriptions and a re-encode to 16k mono all produced it
-# identically, while transcribing that window alone read the words back
-# perfectly. Every cue in that stretch would have landed on the wrong beat.
-# Prints "no repair needed" and passes the timings through when the file is
-# clean, so it is safe - and expected - to run on every module.
+# Every cue derived from inside a collapsed run lands on the wrong beat, and the
+# frame looks finished either way. Run this before deriving any cue. It prints
+# "no repair needed" and passes the timings through when the file is clean, so it
+# is safe - and expected - to run on every module.
 import json, os, subprocess, sys, tempfile, urllib.request
 
 AUDIO, FULL, OUT = sys.argv[1], sys.argv[2], sys.argv[3]

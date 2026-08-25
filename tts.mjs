@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // OpenAI text-to-speech. Text in, one audio file out.
 //
-// The engine speaks HeyGen, ElevenLabs and Kokoro; it does not speak OpenAI, and
-// ADR-0005 says we use OpenAI anyway. This is that adapter, and it is the whole of it.
-//
 //   node tts.mjs narration.txt narration.mp3 [--voice sage] [--model gpt-4o-mini-tts]
 //                                            [--instructions "..."] [--speed 1]
 //
-// The key is OPENAI_API_KEY in .env beside this file. One request, one file:
-// narration for a video is generated in a single pass (ADR-0003).
+// The engine speaks HeyGen, ElevenLabs and Kokoro, not OpenAI; ADR-0005 chooses
+// OpenAI anyway, and this adapter is the whole of that choice. Route every voice
+// track through it and add no second path.
+//
+// The key is OPENAI_API_KEY in .env beside this file and nowhere else - this repo
+// is public. One request, one file: narration for a video is generated in a single
+// pass (ADR-0003).
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

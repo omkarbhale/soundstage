@@ -1,9 +1,9 @@
 # Project agent memory
 
-This file is the project's committed home for project-intrinsic agent knowledge: build, test, release, architecture, and sharp-edge notes that should travel with the code.
+Record here only project-intrinsic agent knowledge - build, test, release, architecture and sharp-edge notes that must travel with the code.
 
-- **Read [`CONTEXT.md`](CONTEXT.md) first.** It is the glossary, and it names the words this
-  project deliberately avoids. `engine` is HyperFrames (adopted whole, never modified);
+- **Read [`CONTEXT.md`](CONTEXT.md) first.** It is the vocabulary, and it names the words this
+  project rejects. `engine` is HyperFrames (adopted whole, never modified);
   `studio` is this repo; a `composition` is the HTML for one video.
 - **No content is committable here, and the repo is public.** `/inputs/` and `/outputs/` are
   gitignored whole - source documents, scripts, audio and rendered video all live there and
@@ -12,15 +12,16 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Narration first, visuals cued from it.** Generate the narration in one pass, transcribe it
   for per-word timings, and derive every reveal from those timings - never hand-time an
   animation ([ADR-0003](docs/adr/0003-pace-visuals-to-the-voice.md)). The chain and the two
-  mandatory guards are in the README under "Making narration"; the guards catch faults that
-  fail **silently** ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
+  mandatory guards are in the README under "Making narration". Skip a guard and a module ships
+  with a fact missing from its audio, or with its cues on the wrong beat, and nothing about
+  the render looks wrong ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
   A deletion `verify.py` reports is not yet a proven drop - a lone function word lost at an
   elision can be the full-file transcript mishearing, not the audio. `verify.py` says how to
   tell, and it is the same window transcription `repair.py` already does.
-- **A cue phrase must name one moment.** `cue_check.py` (README, "Cueing a reveal") proves
-  every phrase a composition cues on occurs exactly once in the narration. The lookup takes
-  the first match, so a repeated phrase silently fires a reveal a scene early - and the
-  frame looks finished either way. What it flags is ambiguity, not a proven defect:
+- **A cue phrase must name one moment.** Run `cue_check.py` (README, "Cueing a reveal") before
+  rendering: it proves every phrase a composition cues on occurs exactly once in the narration.
+  The lookup takes the first match, so a repeated phrase silently fires a reveal a scene early -
+  and the frame looks finished either way. What it flags is ambiguity, not a proven defect:
   confirm against the render before touching a timing, then name the occurrence you
   found - the first match is usually the intended one.
 - **A module ends a measured two seconds after the last word.** Take the measurement with
@@ -28,8 +29,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
   obvious `silencedetect` reading is wrong there and wrong silently.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
-  ([ADR-0005](docs/adr/0005-openai-for-speech.md)). The key lives in `.env` beside it and
-  nowhere else.
+  ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
+  key lives in `.env` beside it and nowhere else.
 
 ## Maintaining this file
 

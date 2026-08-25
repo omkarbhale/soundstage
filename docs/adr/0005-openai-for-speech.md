@@ -3,9 +3,13 @@
 HyperFrames supports HeyGen's own voice, ElevenLabs, and local Kokoro, and none of them is
 OpenAI - so using OpenAI means writing and maintaining an adapter in a repo that otherwise
 has almost no code. The captain chose it anyway: the key already exists, this is a tool he
-builds for himself and maintains himself, and hiccups are acceptable in exchange for
-starting from what he already has. Kokoro was recommended instead, for being local, free,
-keyless and self-contained in a public repo, and was declined with that reasoning stated.
+builds and maintains for himself, and occasional hiccups are acceptable in exchange for
+starting from what he already has.
+
+## Considered Options
+
+Kokoro, being local, free, keyless and self-contained in a public repo, was the
+recommendation and was declined on the reasoning above.
 
 ## Consequences
 

@@ -1,10 +1,9 @@
 # The repo owns every path, the agent invents none
 
 Every artifact - script, generated audio, composition, intermediate, finished video - has
-a defined place declared in the repo, and the agent writes nowhere else. The first attempt
-at this work failed on exactly this point: the model created temp files wherever it liked
-and would have handled revisions across the filesystem however it saw fit, which is why
-that video was never revised rather than why it was hard to revise.
+a defined place declared in the repo, and the agent writes nowhere else. An agent left to
+choose its own paths scatters temp files and intermediates across the filesystem, and a
+video whose working files cannot be found again is not revised at all.
 
 ## Consequences
 

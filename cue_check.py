@@ -4,20 +4,26 @@
 #
 # A composition cues its reveals by quoting the narration - t("Leave it where it
 # is") - and the lookup returns the FIRST match. Quote something the narrator says
-# twice and the reveal silently lands on the wrong one, which usually means it fires
-# in an earlier scene and is already on screen when its own scene fades in. Nothing
-# fails and nothing warns; it is only visible if you happen to sample that frame.
+# twice and the reveal silently lands on the wrong one, which usually means it
+# fires in an earlier scene and is already on screen when its own scene fades in.
+# Nothing fails and nothing warns, and the frame looks finished either way, so it
+# is only caught by sampling exactly that frame. Run this before rendering.
 #
-# Module 9 cued an arrow on "onto their own laptop" and got the copy-out sentence
-# eleven seconds earlier, because the same four words close both. The arrow was
-# drawn a whole scene early and the render had to be thrown away.
+# Every phrase cued without naming an occurrence must match exactly once. Where a
+# phrase genuinely repeats, name the one you mean - t("...", 2) - and this passes
+# it, because you have said which. Reports the time of every match so you can tell
+# them apart.
 #
-# So: every phrase cued without naming an occurrence must match exactly once. Where
-# a phrase genuinely repeats, name the one you mean - t("...", 2) - and this passes
-# it, because you have said which. Reports the time of every match so you can tell.
+# What it reports is ambiguity, not a defect. Confirm against the render before
+# changing a timing: repeats cluster because a module says its key phrase once in
+# the scene that defines it and again in the scene that builds on it, and the
+# defining scene comes first, so the first match is usually the occurrence the
+# scene was written around. Then name what you found - t("...", 1) as readily as
+# t("...", 2). Naming an occurrence records the answer rather than changing it, so
+# a cue that was already right keeps the time it had.
 #
-# Reads the generator rather than asking for a list of phrases: every module in this
-# series cues through t()/te(), and a list kept by hand is a list that goes stale.
+# Keep no hand-written list of cue phrases. This reads the generator, because every
+# module in this series cues through t()/te() and a hand-kept list goes stale.
 import json, re, sys, unicodedata
 
 TRANSCRIPT, GEN = sys.argv[1], sys.argv[2]
