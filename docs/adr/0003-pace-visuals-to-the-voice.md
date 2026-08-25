@@ -2,12 +2,12 @@
 
 Narration is generated first and transcribed with per-word timestamps; every animation
 lands on a spoken cue derived from that real audio, and nothing is timed by hand. This is
-HyperFrames' own guidance and we are recording it because we already violated it once: an
-earlier user guide generated audio in per-paragraph chunks against independently timed
-animations, and the result was out of sync with audibly clipped chunk boundaries.
+HyperFrames' own guidance, recorded here because the opposite order is the tempting one:
+audio generated per paragraph against independently timed animations drifts out of sync
+and clips audibly at every chunk boundary.
 
 ## Consequences
 
 Narration for one video is generated in a single pass. Splitting it per paragraph or per
-section reintroduces exactly the boundary artefacts that made the first attempt not worth
+section reintroduces those boundary artefacts, and a recording carrying them is not worth
 revising.

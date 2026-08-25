@@ -1,20 +1,19 @@
 # The end of speech, measured - the number the closing hold is built from.
 #
+#   python3 speech_end.py voice.mp3
+#
 # House style asks for a closing card that holds about two seconds past the last
-# word and then ends, and for that measurement to be measured rather than guessed.
-# The obvious way to take it is wrong in a way that fails silently: silencedetect
+# word and then ends, on a measured number and never a guessed one. The obvious
+# way to take that measurement is wrong in a way that fails silently: silencedetect
 # reports the START of each silence, so the last silence_start is the end of speech
-# only if the file actually ends in silence. Module 7's narration ended on its final
-# word with 0.2s of file left, so nothing trailing was detected and the last
-# silence_start was a pause six seconds earlier, mid-script. A hold built on that
-# number leaves the closing card sitting there in silence - which is module 1's
-# defect, arrived at from the other direction.
+# only if the file actually ends in silence. When narration runs on to the last
+# word of the file, nothing trailing is detected and the last silence_start is a
+# pause seconds earlier, mid-script - and a closing card built on that number sits
+# there in silence.
 #
 # So this refuses to answer unless the file ends in a silence it can measure to.
 # Give the voice track a tail before measuring (ffmpeg apad, which is wanted anyway
 # so the last word can decay instead of stopping dead).
-#
-#   python3 speech_end.py voice.mp3
 #
 # Prints the end of speech in seconds. Exits non-zero, saying why, when the file
 # ends mid-speech and the honest answer is that it cannot be measured.

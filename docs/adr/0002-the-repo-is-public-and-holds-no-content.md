@@ -1,10 +1,9 @@
 # The repo is public and holds no content
 
-The tooling is generic and worth having in the open, but the first material it will be
-pointed at is SteepGraph's ISO 27001 security-awareness package - an internal deliverable
-containing quiz answer keys the document itself says must never reach learners, plus
-client access policy and audit dates. It is not ours to publish. So inputs and outputs
-never enter version control at all, gitignored from the first commit, before there is
+The tooling is generic and worth having in the open, but the material it is pointed at
+is not ours to publish: internal deliverables carrying quiz answer keys the documents
+themselves say must never reach learners, client access policy, and audit dates. So
+inputs and outputs never enter version control at all, gitignored before there is
 anything to leak.
 
 ## Consequences
