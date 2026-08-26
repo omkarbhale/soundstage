@@ -28,6 +28,14 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
   obvious `silencedetect` reading is wrong there and wrong silently.
+- **Render on a Linux-native path, never on a `/mnt/c` DrvFs mount.** The engine writes its
+  frame sequence inside the composition directory, and tens of thousands of small writes
+  starve the workers there: 3.2 fps on `/mnt/c` against 43-66 fps on ext4, same composition.
+  Copy the composition to a Linux path, render, copy the finished mp4 back under `/outputs/`.
+  Related: `chrome-headless-shell` cannot unpack itself on a box with no `unzip` and no
+  `yauzl`, so the engine's download fails with "no zip archiver is available" - fetch the zip
+  from `storage.googleapis.com/chrome-for-testing-public/<version>/linux64/` and extract it
+  with Python's `zipfile`, keeping the exec bit. It caches in `~/.cache/hyperframes/chrome/`.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
