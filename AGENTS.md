@@ -28,6 +28,11 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
   obvious `silencedetect` reading is wrong there and wrong silently.
+- **A look change is reviewed from frames, not from a render.** Pick the seconds with
+  `review_frames.py` (README, "Reviewing a module without rendering it") and capture them
+  with `hyperframes snapshot --at`. Never type the seconds by hand: a scene clip opens
+  before its own first word, so a frame taken inside the handover carries two scenes at
+  once and reads as a broken render rather than a badly chosen moment.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.

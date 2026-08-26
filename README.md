@@ -95,6 +95,26 @@ earlier, mid-script, and a closing card built on that number sits there in silen
 `speech_end.py` refuses to answer rather than return it, so give the voice track a tail
 (`ffmpeg -af apad`) before measuring; the last word wants room to decay anyway.
 
+## Reviewing a module without rendering it
+
+A change to the look does not need a render to be judged. `hyperframes snapshot
+--at` captures any second you name, and `review_frames.py` names them:
+
+```
+python3 review_frames.py <composition>/index.html            # what it will capture
+hyperframes snapshot --no-end --at "$(python3 review_frames.py <composition>/index.html --times)"
+```
+
+One frame per scene at its settled state, plus one per distinct reveal inside
+it, so the reviewer sees the module build rather than fifteen end-states.
+
+Do not type the seconds yourself. A scene clip opens before its own first word
+so the cross-fade has room, and a frame captured inside that handover carries
+two scenes at once - one heading printed through another. It reads as a broken
+render rather than a badly chosen moment, and it costs the reviewer a bug report
+about a fault that is not there. `review_frames.py` reads both fades out of the
+generated timeline and stays past them.
+
 ## Where to render
 
 Render from a Linux-native path. The engine writes its frame sequence inside the project
