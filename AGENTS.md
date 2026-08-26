@@ -31,6 +31,10 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
+- **Render on a Linux-native path, never on `/mnt/c`** (README, "Where to render"). The engine
+  writes its frame sequence inside the project directory, and on the Windows DrvFs mount those
+  tens of thousands of small writes starve the workers: measured on one composition, 3.2 fps
+  against 43 fps on ext4. Copy the composition to a Linux path, render there, copy the mp4 back.
 
 ## Maintaining this file
 

@@ -95,6 +95,20 @@ earlier, mid-script, and a closing card built on that number sits there in silen
 `speech_end.py` refuses to answer rather than return it, so give the voice track a tail
 (`ffmpeg -af apad`) before measuring; the last word wants room to decay anyway.
 
+## Where to render
+
+Render from a Linux-native path. The engine writes its frame sequence inside the project
+directory, and a composition living on the Windows mount (`/mnt/c/...`) makes every one of
+those tens of thousands of small writes cross DrvFs, which starves the render workers.
+Measured on one composition: **3.2 fps on `/mnt/c` against 43 fps on ext4**. Copy the
+composition to a path under `~`, render there, and copy the finished mp4 back.
+
+The engine downloads `chrome-headless-shell` on first render and cannot unpack it on a box
+with no `unzip` and no `yauzl` - it fails with "no zip archiver is available". Fetch the zip
+from `storage.googleapis.com/chrome-for-testing-public/<version>/linux64/` and extract it with
+Python's `zipfile`, keeping the exec bit. It is cached in `~/.cache/hyperframes/chrome/`
+afterwards, so this is once per machine.
+
 ## Building a module
 
 There is no build step: a module is a directory of its own with a composition in it, and the
