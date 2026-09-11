@@ -15,28 +15,51 @@
 # frame looks finished either way. Run this before deriving any cue. It prints
 # "no repair needed" and passes the timings through when the file is clean, so it
 # is safe - and expected - to run on every module.
-import json, os, subprocess, sys, tempfile, urllib.request
+# The window is re-measured through `transcribe.py`, not through a second client
+# of its own: that keeps ONE path to word timings, so this works on whichever
+# engine the module was aligned with (ADR-0008) instead of only on OpenAI.
+import json, os, subprocess, sys, tempfile
 
-AUDIO, FULL, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
-KEY = os.environ["OPENAI_API_KEY"]
+# A flag takes a value, so skip both - counting the value as a positional is how
+# "--engine local" turns into one argument too many and a usage error.
+def _parse(argv, takes_value, n, usage):
+    args, flags, i = [], {}, 0
+    while i < len(argv):
+        a = argv[i]
+        if a in takes_value:
+            if i + 1 >= len(argv):
+                sys.exit(f"{a} needs a value")
+            flags[a] = argv[i + 1]; i += 2; continue
+        if a.startswith("--"):
+            sys.exit(f"unknown flag {a}")
+        args.append(a); i += 1
+    if len(args) != n:
+        sys.exit(usage)
+    return args, flags
+
+(AUDIO, FULL, OUT), FLAGS = _parse(
+    sys.argv[1:], {"--engine"}, 3,
+    "usage: repair.py <audio> <raw.json> <out.json> [--engine auto|openai|local]")
+ENGINE = FLAGS.get("--engine", "auto")
+HERE = os.path.dirname(os.path.abspath(__file__))
 PAD = 4.0          # seconds of context either side of the bad span
 SUSPECT = 1.5      # a word this long is an alignment collapse, not speech
 
 def transcribe(path):
-    import uuid
-    b = open(path, "rb").read()
-    bnd = uuid.uuid4().hex
-    parts = []
-    for k, v in (("model", "whisper-1"), ("response_format", "verbose_json"),
-                 ("timestamp_granularities[]", "word")):
-        parts.append(f'--{bnd}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
-    parts.append(f'--{bnd}\r\nContent-Disposition: form-data; name="file"; filename="a.mp3"\r\n'
-                 f'Content-Type: audio/mpeg\r\n\r\n'.encode() + b + b"\r\n")
-    parts.append(f"--{bnd}--\r\n".encode())
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/audio/transcriptions", data=b"".join(parts),
-        headers={"Authorization": f"Bearer {KEY}", "Content-Type": f"multipart/form-data; boundary={bnd}"})
-    return json.load(urllib.request.urlopen(req))["words"]
+    """Word rows for one clip, from the studio's single transcription path."""
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+        out = f.name
+    try:
+        r = subprocess.run([sys.executable, os.path.join(HERE, "transcribe.py"),
+                            path, out, "--engine", ENGINE],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.exit("repair could not re-measure the window:\n" + (r.stderr or r.stdout).strip())
+        return [{"word": w["text"], "start": w["start"], "end": w["end"]}
+                for w in json.load(open(out))]
+    finally:
+        os.path.exists(out) and os.unlink(out)
+
 
 words = json.load(open(FULL))
 bad = [i for i, w in enumerate(words) if w["end"] - w["start"] > SUSPECT]

@@ -109,6 +109,57 @@ to join mismatched parts** rather than producing a file that plays for one viewe
 It also checks the finished duration against the sum of the parts, because a concat that silently
 drops a part still produces a playable file.
 
+## Speaking without an account
+
+`tts.mjs` and `transcribe.py` each speak two engines behind one path (ADR-0008). OpenAI is
+the default while a key works; the local pair needs no key, no network and no account, and
+runs on CPU.
+
+```
+node tts.mjs narration.txt narration.mp3 --engine kokoro --voice af_heart --speed 0.9
+python3 transcribe.py narration.mp3 raw.json --engine local
+```
+
+`--engine auto` (the default on both) prefers OpenAI and falls back to local when the key is
+refused or out of credit. It says so loudly and always prints which engine actually spoke,
+because a voice that changes without anyone noticing is worse than one that fails.
+
+**Setting the local pair up.** Both need a Python that is not the system one - `kokoro-onnx`
+refuses Python 3.14, and the system interpreter here is 3.14. Build one venv, put all three
+packages in it, and point the engine's own variable at it:
+
+```
+uv venv --python 3.12 ~/.cache/soundstage/voice-venv
+uv pip install --python ~/.cache/soundstage/voice-venv/bin/python kokoro-onnx soundfile faster-whisper
+echo "HYPERFRAMES_PYTHON=$HOME/.cache/soundstage/voice-venv/bin/python" >> .env
+```
+
+`hyperframes doctor` then reports `TTS (Kokoro)` as installed, which is the check that the
+speech half is wired. The model downloads itself on first use (~310 MB) into
+`~/.cache/hyperframes/tts/`; faster-whisper downloads its own on first use.
+
+**What changes when the voice is local.** Kokoro is deterministic - the same text gives the
+same audio every time - so *taking a module repeatedly until `verify.py` is clean is
+meaningless*. There is one take. Run `verify.py` anyway: a drop it reports is now a fact
+about the script rather than a dice roll, and no number of retakes will move it. Measured
+over six voices on a sample built from the hardest tokens in one corpus, Kokoro produced
+**zero deletions and zero insertions** in every one.
+
+**It mispronounces proper nouns, and has no `instructions` control to fix it with.** Measured:
+`Aras` read as ARR-as, `tas-playwright` as "task playwright", and a capitalised `TAS` spelled
+out letter by letter - 0.62s against 0.34s for the single syllable, which is how you tell
+without listening. So pass a respelling table:
+
+```
+node tts.mjs narration.txt out.mp3 --engine kokoro --lexicon pronunciation.json
+#   { "Aras": "Airus", "tas-playwright": "tahs playwright" }
+```
+
+It rewrites what is **spoken**, never the script, so `verify.py` still diffs the real
+narration against the real audio. Match it against a reference: synthesise the name, align
+it, and compare the spelling the aligner returns with the one it returns for audio you know
+is right.
+
 ## Cueing a reveal
 
 A composition cues each reveal by quoting the narration - `t("Leave it where it is")` - and
