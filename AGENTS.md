@@ -56,6 +56,18 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   with `hyperframes snapshot --at`. Never type the seconds by hand: a scene clip opens
   before its own first word, so a frame taken inside the handover carries two scenes at
   once and reads as a broken render rather than a badly chosen moment.
+- **Two engines, two paths, and no third caller.** `tts.mjs` is the only way to make speech
+  and `transcribe.py` the only way to get word timings; each speaks OpenAI or a local model
+  behind that one path (`--engine`), and `auto` falls back loudly, always printing which
+  engine spoke ([ADR-0008](docs/adr/0008-a-local-voice-and-a-local-aligner.md), README,
+  "Speaking without an account"). Anything needing a transcript calls `transcribe.py` -
+  `repair.py` does, and so should the next thing. The local pair needs a non-system Python
+  (`kokoro-onnx` refuses 3.14) named by `HYPERFRAMES_PYTHON`.
+  **The local voice is deterministic, so taking a module repeatedly is meaningless** - one
+  take, and a drop `verify.py` reports is a fact about the script, not a dice roll. It also
+  mispronounces proper nouns and has no `instructions` control; `--lexicon` respells what is
+  spoken without touching the script the guards check. To tell a mispronunciation from an
+  ASR quirk, run the local aligner over audio you know is right and compare spellings.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
