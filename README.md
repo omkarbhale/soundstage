@@ -133,6 +133,22 @@ the finished render either side of both candidates, then name what you found: `t
 readily as `t("...", 2)`. Naming the occurrence records the answer rather than changing it - a
 cue that was already right keeps the time it had.
 
+### Write the cue in transcript spelling
+
+A cue is matched against the **transcript**, and the transcript does not spell everything the
+way your script does. Transcription returns no hyphens at all - measured across a 1,334-word
+module, not one of its hyphenated words came back hyphenated, and `multi-step wizards` came
+back as `step wizards`. It returns a spelled number as digits, so a phrase quoting
+`ninety-seven` matches nothing. And it separates some compounds: `cannot` comes back as
+`can not`, `lifecycle` as `life cycle`.
+
+So a cue phrase quoting a hyphenated word or a spelled number resolves against the script you
+wrote and against nothing in the audio. Write the cue the way the transcript will spell it -
+`t("Right click the row")` for a script that says `Right-click the row` - or move the cue onto
+a neighbouring phrase that has neither. This is not a style preference: on one course it was
+eight broken cues across six modules, every one of them invisible until the audio had already
+been generated.
+
 ## Proving a reveal lands
 
 A composition animates by selector, and two ways of writing one stop the reveal landing
@@ -152,6 +168,30 @@ identical either way. The only frame that shows it is one sampled between the tw
 which is not a frame anyone picks by hand, and not one `review_frames.py` promises either,
 because it samples a scene's reveals rather than the gaps between them. Run it after
 building and before rendering, beside `cue_check.py`.
+
+## Proving a composition before you spend the narration on it
+
+Every reveal is placed from the module's transcript, so a composition cannot be run at all
+until its audio exists - and the audio is the expensive, non-deterministic half. That ordering
+hides a whole class of fault until the worst possible moment. A generator that raises, a cue
+that names no moment or two of them, a duplicate id: none of them are about the recording, and
+all of them are found only after it has been paid for.
+
+```
+python3 dry_run.py narration.txt <composition>   # synthetic transcript, then build it
+( cd <composition> && python3 gen.py )
+python3 cue_check.py <composition>/transcript.json <composition>/gen.py
+python3 id_check.py <composition>/index.html
+```
+
+`dry_run.py` writes the script's own words at a steady rate, spelled the way transcription
+really spells them, plus the two tail files the generator reads. Every fault that is a property
+of the composition rather than of the recording surfaces now, for no API calls and no takes.
+
+It proves no timing. Every time it writes is invented, so a clean dry run says the composition
+is well-formed and says nothing about whether a reveal lands on its word - that is what the
+real chain and `review_frames.py` are for. Run it before the first take of a module, and again
+after any edit to a generator, and keep the real guards where they are.
 
 ## Ending a module
 

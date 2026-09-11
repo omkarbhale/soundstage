@@ -35,6 +35,15 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   frame; a tween whose selector matches nothing does the same. `cue_check.py` still passes and
   the scene's settled frame is identical either way, so only a frame sampled between the two
   cues shows it.
+- **Prove a composition before you spend the narration on it.** A composition reads its
+  transcript, so nothing about it runs until the audio exists - which hides a generator that
+  raises, an ambiguous cue and a duplicate id until the expensive half is already paid for.
+  `dry_run.py` (README, "Proving a composition before you spend the narration on it") writes a
+  synthetic transcript from the script so the generator and both guards run for free. It proves
+  no timing - every time it writes is invented - only that the composition is well-formed.
+  Related: **a cue is matched against the transcript, and the transcript has no hyphens in it
+  at all** and spells numbers as digits, so a cue quoting `Right-click` or `ninety-seven` can
+  never match. README, "Write the cue in transcript spelling".
 - **A module ends a measured two seconds after the last word.** Take the measurement with
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
