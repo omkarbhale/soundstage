@@ -33,23 +33,6 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   with `hyperframes snapshot --at`. Never type the seconds by hand: a scene clip opens
   before its own first word, so a frame taken inside the handover carries two scenes at
   once and reads as a broken render rather than a badly chosen moment.
-- **Re-voicing a finished video runs the other way round.** ADR-0003 governs what the
-  studio makes; a video it is *given* cannot be cued, so the old track is the score
-  ([ADR-0008](docs/adr/0008-a-re-voice-is-fitted-to-the-old-track.md), README under
-  "Re-voicing a video that already exists"). Each line is fitted to its old line's
-  duration exactly, not merely inside it - starting on time says nothing about the inside
-  of a line, and a long line read a few per cent quick is seconds ahead of the picture by
-  its end while still ending in its slot. Read `dub.py --report` before building: the
-  median tempo is the pace the take is missing, and `dub_speak.py --speed` is where that
-  belongs, because the model changes its delivery for it where `dub.py` stretches audio
-  afterwards. Timing, length and wording are all measured; **pronunciation is not and
-  cannot be** - a re-voice gets a human ear before it ships.
-- **A transcript that will be read back out is not a transcript.** Whisper heard "Aras" as
-  AERIS, ERIS and ARIS across one track. Elsewhere that is a harmless spelling; in a
-  re-voice it is the finished video saying the wrong product name. Pass the proper nouns
-  and part numbers as `--vocab`, taken off the screen, and check the identifiers: the
-  speech model reads every zero of `PRT-0000061` where the narrator said the whole thing
-  in about a second, which shows up as that line running long in `dub.py --report`.
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
