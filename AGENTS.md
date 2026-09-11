@@ -44,14 +44,12 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   belongs, because the model changes its delivery for it where `dub.py` stretches audio
   afterwards. Timing, length and wording are all measured; **pronunciation is not and
   cannot be** - a re-voice gets a human ear before it ships.
-
 - **A transcript that will be read back out is not a transcript.** Whisper heard "Aras" as
   AERIS, ERIS and ARIS across one track. Elsewhere that is a harmless spelling; in a
   re-voice it is the finished video saying the wrong product name. Pass the proper nouns
   and part numbers as `--vocab`, taken off the screen, and check the identifiers: the
   speech model reads every zero of `PRT-0000061` where the narrator said the whole thing
   in about a second, which shows up as that line running long in `dub.py --report`.
-
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
