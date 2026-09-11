@@ -43,3 +43,7 @@
 *.[wW][aA][vV]
 *.[mM][pP]3
 *.[mM]4[aA]
+
+# Python bytecode from the scripts here
+__pycache__/
+*.pyc
