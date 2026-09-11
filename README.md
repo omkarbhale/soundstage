@@ -95,6 +95,13 @@ It takes the voice, model, speed and instructions from `clips/take.json` and ref
 given them again. The rest of the take was read at one setting, and a line read at another
 sounds like a different person in a different room - one sentence in four minutes.
 
+The last step is not one of these scripts. The new track is the old one's length, so the
+picture needs nothing done to it and is copied across rather than encoded again:
+
+```
+ffmpeg -i old.mp4 -i new-voice.wav -map 0:v -map 1:a -c:v copy revoiced.mp4
+```
+
 `dub.py` proves the finished track lands on the old grid before it is worth muxing, but
 nothing here can check pronunciation. Give a re-voice a human ear before it ships.
 
