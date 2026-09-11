@@ -17,13 +17,21 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   the render looks wrong ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
   A deletion `verify.py` reports is not yet a proven drop - a lone function word lost at an
   elision can be the full-file transcript mishearing, not the audio. `verify.py` says how to
-  tell, and it is the same window transcription `repair.py` already does.
+  tell, and it is the same window transcription `repair.py` already does. **One pass also caps
+  the video**: the limit is ~2000 *tokens*, about 1,700 words, so a character count will not
+  find it and a topic that will not fit is more than one module (README, "Making narration").
 - **A cue phrase must name one moment.** Run `cue_check.py` (README, "Cueing a reveal") before
   rendering: it proves every phrase a composition cues on occurs exactly once in the narration.
   The lookup takes the first match, so a repeated phrase silently fires a reveal a scene early -
   and the frame looks finished either way. What it flags is ambiguity, not a proven defect:
   confirm against the render before touching a timing, then name the occurrence you
   found - the first match is usually the intended one.
+- **A reveal must have exactly one element to land on.** Run `id_check.py` (README, "Proving
+  a reveal lands") after building and before rendering. A duplicate `id` resolves to the first
+  match, so one element is tweened twice and the other is on screen from its scene's first
+  frame; a tween whose selector matches nothing does the same. `cue_check.py` still passes and
+  the scene's settled frame is identical either way, so only a frame sampled between the two
+  cues shows it.
 - **A module ends a measured two seconds after the last word.** Take the measurement with
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the

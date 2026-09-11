@@ -55,6 +55,17 @@ non-deterministic, so `verify.py` certifies the audio in hand and never the scri
 again on every regeneration. Read
 [ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) before skipping either.
 
+One pass has a ceiling, and it is on **tokens rather than characters**, so counting
+characters will not find it. `gpt-4o-mini-tts` refuses an input over **2000 tokens** - about
+1,700 words, or a little over ten minutes of speech. `tts-1` and `tts-1-hd` cap at 4096
+*characters*, which is smaller, so neither is an escape hatch. ADR-0003 requires one pass for
+one video, so that ceiling is the length of a soundstage video: a topic that will not fit is
+**more than one module**, not one module generated twice.
+
+Measure the script before writing to it rather than after. The endpoint reports the token
+count inside its own refusal, so sending the script twice over (`input: script + script`)
+costs nothing, fails, and hands back twice the number you wanted.
+
 ## Cueing a reveal
 
 A composition cues each reveal by quoting the narration - `t("Leave it where it is")` - and
@@ -78,6 +89,26 @@ the first match is usually the occurrence the scene was written around. Read the
 the finished render either side of both candidates, then name what you found: `t("...", 1)` as
 readily as `t("...", 2)`. Naming the occurrence records the answer rather than changing it - a
 cue that was already right keeps the time it had.
+
+## Proving a reveal lands
+
+A composition animates by selector, and two ways of writing one stop the reveal landing
+where it was meant to. A **duplicate id** - a scene that writes literal ids and also
+generates numbered ones in a loop - resolves to the first match in document order, so one
+element is tweened twice and the other has no reveal at all: it is simply on screen from the
+moment its scene fades in. A **selector that matches nothing** - an element renamed, a tween
+left behind - animates an empty set, with the same result.
+
+```
+python3 id_check.py <composition>/index.html    # every reveal has one element to land on
+```
+
+Both fail the way the narration faults do. Nothing errors, nothing warns, `cue_check.py`
+still passes because every cue phrase still resolves, and the scene's **settled** frame is
+identical either way. The only frame that shows it is one sampled between the two cues -
+which is not a frame anyone picks by hand, and not one `review_frames.py` promises either,
+because it samples a scene's reveals rather than the gaps between them. Run it after
+building and before rendering, beside `cue_check.py`.
 
 ## Ending a module
 
