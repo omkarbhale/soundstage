@@ -48,13 +48,14 @@ import statistics
 import subprocess
 import sys
 
-from speech_runs import runs
+from speech_runs import runs, silences
 
 RATE = 48000
 TEMPO_LIMIT = 1.35    # past this a squeeze is audible; reword the line instead
 TEMPO_FLOOR = 0.70    # and past this a stretch drags
 NUDGE = 0.04          # corrections smaller than this are left alone
 SYNC_LIMIT = 0.060    # a line's start may miss the old one by this much and no more
+CONFIRM_NOISE = "-65dB"   # see confirm(): well under the level a lossy encode moves
 
 
 def probe(path):
@@ -63,9 +64,20 @@ def probe(path):
          "-of", "csv=p=0", path], capture_output=True, text=True, check=True).stdout)
 
 
+TRIM_FLOOR = 0.05     # the shortest lead-in worth cutting off a clip
+
+
 def speech_span(path):
-    """First word to last word of a clip - the padding is not the line."""
-    lines, total = runs(path)
+    """First word to last word of a clip - the padding is not the line.
+
+    Measured to a much shorter floor than a track's own lines are. Reading a
+    clip at the line floor leaves any lead-in shorter than that floor in place,
+    because a silence that brief is not reported at all - and the clip is then
+    placed on time with up to that much silence in front of its first word,
+    which is the whole line late inside a slot that still measures as full.
+    The floor here is what bounds that error, so it belongs under SYNC_LIMIT.
+    """
+    lines, total = runs(path, mindur=TRIM_FLOOR)
     return lines[0]["start"], lines[-1]["end"]
 
 
@@ -130,6 +142,19 @@ def build(fit, total, out):
                     "-ar", str(RATE), "-ac", "2", out], check=True)
 
 
+def spans(path, noise=CONFIRM_NOISE):
+    """The sound in a file, as (start, end) - the complement of its silences."""
+    total = probe(path)
+    out, at = [], 0.0
+    for s, e in silences(path, noise=noise, mindur=TRIM_FLOOR):
+        if s > at:
+            out.append((at, s))
+        at = e
+    if total - at > 0.01:
+        out.append((at, total))
+    return out
+
+
 def confirm(old, new):
     """Read the finished track back and prove its lines land on the old ones.
 
@@ -137,14 +162,46 @@ def confirm(old, new):
     A clip whose lead-in this missed sits late INSIDE a correct slot, and the
     track is then the right length, with the right silences, and late all the
     way through - which the durations cannot see. So the finished file is
-    measured the same way the old one was, and the two grids compared.
+    measured, against the slots the old track actually has.
+
+    Not against a grid re-derived from the new track: a new reader breathes
+    where the old one did not, which reads as one more line than there are, and
+    from there every line is compared to its neighbour and the answer is noise.
+    The old grid is the question, so it is the thing to measure into.
+
+    Each line is compared to the START OF ITS SLOT, which is the thing the
+    build actually promises, and not to where the old voice crossed a threshold
+    inside that slot. Two readings of the same words do not cross a threshold at
+    the same millisecond - the attack of a soft first phoneme differs by reader -
+    so comparing onset to onset has no stable zero and charges this with a
+    difference between voices that is not an error in placement.
+
+    Measured well below the floor the grid is read at, because a threshold
+    answers "where does this cross -50dB" and not "where does the word start",
+    and the two part company on a soft onset. Encode a finished track to AAC and
+    the first phoneme of an "f" or an "s" is attenuated just enough to cross
+    later: measured on this dub, one line read 105ms late in the mp4 that read
+    4ms late in the wav it was made from, from identical samples. A guard that
+    reports that is worse than none, because the fix it invites is shifting
+    audio that was already right.
     """
     a, _ = runs(old)
-    b, _ = runs(new)
-    if len(a) != len(b):
-        raise SystemExit(f"{new}: reads as {len(b)} lines against the old track's {len(a)} - "
-                         "lines have run together or split, do not mux this")
-    off = [(abs(x["start"] - y["start"]), x["i"]) for x, y in zip(a, b)]
+    now = spans(new)
+
+    off = []
+    for r in a:
+        # The FIRST sound overlapping the slot is that line's first word, taken
+        # the same way on both tracks. Reading the new track as its own grid
+        # instead would compare the wrong pairs: a new reader pauses inside a
+        # line where the old one did not, the line measures as two, and every
+        # line after it is compared to its neighbour.
+        here = [s for s, e in now if e > r["start"] + 0.01 and s < r["end"] - 0.01]
+        here = min(here) if here else None
+        if here is None:
+            raise SystemExit(f"{new}: line {r['i']} is silent - its slot "
+                             f"({r['start']:.2f}s, {r['dur']:.2f}s long) has no speech in it, "
+                             "do not mux this")
+        off.append((abs(here - r["start"]), r["i"]))
     worst, where = max(off)
     if worst > SYNC_LIMIT:
         raise SystemExit(f"{new}: line {where} starts {worst * 1000:.0f}ms off the old track "
@@ -168,8 +225,11 @@ def main(argv):
     med = statistics.median(tempos)
     print(f"\n{len(fit)} lines, tempo {min(tempos):.3f}..{max(tempos):.3f}, median {med:.3f}")
     if abs(med - 1) > NUDGE:
-        print(f"the take is paced {'fast' if med > 1 else 'slow'} as a whole - "
-              f"regenerate it at --speed {1 / med:.2f} and the per-line corrections shrink")
+        # tempo is spoken/slot, and the speech request's speed divides the
+        # spoken length, so the factor to ask for IS the median - not its
+        # reciprocal, which moves the whole take the wrong way.
+        print(f"the take is paced {'slow' if med > 1 else 'fast'} as a whole - "
+              f"regenerate it at --speed {med:.2f} and the per-line corrections shrink")
 
     over = [r for r in fit if not TEMPO_FLOOR <= r["tempo"] <= TEMPO_LIMIT]
     if over:
