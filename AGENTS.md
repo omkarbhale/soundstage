@@ -42,8 +42,11 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   synthetic transcript from the script so the generator and both guards run for free. It proves
   no timing - every time it writes is invented - only that the composition is well-formed.
   Related: **a cue is matched against the transcript, and the transcript has no hyphens in it
-  at all** and spells numbers as digits, so a cue quoting `Right-click` or `ninety-seven` can
-  never match. README, "Write the cue in transcript spelling".
+  at all.** It also writes numbers as digits (inconsistently - `Screen 1` while `Screen two`
+  stayed words), Americanises spelling (`centred` to `centered`) and separates compounds
+  (`preflight` to `pre flight`). Cue on a phrase carrying none of those: transcript spelling
+  itself is not safe to quote, because the next take may spell it the other way.
+  README, "Write the cue in transcript spelling".
 - **A module ends a measured two seconds after the last word.** Take the measurement with
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the

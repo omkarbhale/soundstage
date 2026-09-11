@@ -136,18 +136,29 @@ cue that was already right keeps the time it had.
 ### Write the cue in transcript spelling
 
 A cue is matched against the **transcript**, and the transcript does not spell everything the
-way your script does. Transcription returns no hyphens at all - measured across a 1,334-word
-module, not one of its hyphenated words came back hyphenated, and `multi-step wizards` came
-back as `step wizards`. It returns a spelled number as digits, so a phrase quoting
-`ninety-seven` matches nothing. And it separates some compounds: `cannot` comes back as
-`can not`, `lifecycle` as `life cycle`.
+way your script does. Four differences, each one measured rather than guessed:
 
-So a cue phrase quoting a hyphenated word or a spelled number resolves against the script you
-wrote and against nothing in the audio. Write the cue the way the transcript will spell it -
-`t("Right click the row")` for a script that says `Right-click the row` - or move the cue onto
-a neighbouring phrase that has neither. This is not a style preference: on one course it was
-eight broken cues across six modules, every one of them invisible until the audio had already
-been generated.
+- **No hyphens, ever.** Across a 1,334-word module not one hyphenated word came back
+  hyphenated, and `multi-step wizards` came back as `step wizards`.
+- **Numbers come back as digits, inconsistently.** In one module `Screen one` was transcribed
+  `Screen 1` while `Screen two` and `Screen three` stayed words - so the hazard does not even
+  announce itself by breaking every sibling cue.
+- **Spelling is Americanised.** `recognise` comes back `recognize`, `centred` comes back
+  `centered`.
+- **Compounds separate.** `preflight` comes back `pre flight`, `cannot` as `can not`,
+  `lifecycle` as `life cycle`.
+
+So a cue quoting any of those resolves against the script you wrote and against nothing in the
+audio. Move the cue onto a neighbouring phrase that contains none of them - that survives a
+re-record, where transcript spelling does not, because the next take may spell it the other
+way. Do not quote a number, a hyphenated word, a compound or a word whose two spellings differ.
+
+A function word can also simply be absent: a take that says `Drive to the exact screen` can
+transcribe as `Drive to the screen`, with the audio intact. Another reason to cue on the part
+of the sentence that carries the meaning rather than on its opening words.
+
+This is not a style preference: on one course it was eight broken cues across six modules
+before a take was spent, and five more that only the real transcript could reveal.
 
 ## Proving a reveal lands
 
