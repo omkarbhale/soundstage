@@ -66,6 +66,49 @@ Measure the script before writing to it rather than after. The endpoint reports 
 count inside its own refusal, so sending the script twice over (`input: script + script`)
 costs nothing, fails, and hands back twice the number you wanted.
 
+### The clause drop is length-driven, and 2000 tokens is not the working ceiling
+
+The hard limit refuses loudly. The fault that matters arrives long before it and says nothing:
+**the longer the pass, the more clauses the model silently drops**, and `verify.py` is the only
+thing that sees it. Measured on one script, same voice, same instructions, one variable:
+
+| words in the pass | what `verify.py` found |
+|---|---|
+| 280 | clean, first take |
+| **1,398** | **clean, first take** |
+| 1,663 | 1 to 8 dropped words or clauses **on every one of ten takes** — never clean |
+
+At 1,663 words the drops were scattered singletons in different places each time, so they cannot
+be written out: hardening the sentence that dropped only moves the loss somewhere else. Among them
+were a whole gate ("then calibration, then validation"), the adjective in "resolves the **wrong**
+element" — which inverts the sentence — and, once, the script's central principle entire.
+
+So **write to about 1,200 words a pass and treat that as the ceiling**, not the 2000-token limit.
+A topic that will not fit is more modules, not a longer pass: **add a module rather than cut
+content**, and join them (below). Run `verify.py` on every pass and every regeneration — the drop
+is non-deterministic, so a clean pass certifies the audio in hand and nothing else.
+
+## Joining modules into one video
+
+A course is several modules, and the deliverable is often one file. Render each module normally,
+then join the finished files:
+
+```
+python3 join.py course.mp4 module-01.mp4 module-02.mp4 module-03.mp4
+```
+
+Each module keeps its own narration pass and cues its own reveals from its own per-word timings,
+so nothing is paced to a guess and [ADR-0003](docs/adr/0003-pace-visuals-to-the-voice.md) is
+satisfied — what that ADR forbids is pacing the voice to the visuals, not a deliverable having
+more than one pass.
+
+`join.py` copies the streams rather than re-encoding, so the joined file is bit-for-bit the
+modules that went into it and joining costs seconds instead of minutes. That only works when every
+part shares a codec, resolution, frame rate and audio layout, so it **checks that first and refuses
+to join mismatched parts** rather than producing a file that plays for one viewer and not another.
+It also checks the finished duration against the sum of the parts, because a concat that silently
+drops a part still produces a playable file.
+
 ## Cueing a reveal
 
 A composition cues each reveal by quoting the narration - `t("Leave it where it is")` - and

@@ -17,9 +17,12 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   the render looks wrong ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
   A deletion `verify.py` reports is not yet a proven drop - a lone function word lost at an
   elision can be the full-file transcript mishearing, not the audio. `verify.py` says how to
-  tell, and it is the same window transcription `repair.py` already does. **One pass also caps
-  the video**: the limit is ~2000 *tokens*, about 1,700 words, so a character count will not
-  find it and a topic that will not fit is more than one module (README, "Making narration").
+  tell, and it is the same window transcription `repair.py` already does. **Write about 1,200 words
+  a pass.** The 2000-*token* hard limit refuses loudly; the fault that matters arrives earlier and
+  silently, because the clause drop is length-driven - measured clean at 1,398 words and never clean
+  in ten takes at 1,663 (README, "Making narration"). A topic that will not fit is more modules:
+  **add a module rather than cut content**, and join the finished files with `join.py` (README,
+  "Joining modules into one video"), which refuses mismatched parts and a part that did not arrive.
 - **A cue phrase must name one moment.** Run `cue_check.py` (README, "Cueing a reveal") before
   rendering: it proves every phrase a composition cues on occurs exactly once in the narration.
   The lookup takes the first match, so a repeated phrase silently fires a reveal a scene early -
