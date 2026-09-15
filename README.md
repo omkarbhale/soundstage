@@ -176,6 +176,13 @@ Where a phrase genuinely repeats, name the occurrence - `t("...", 2)` - and it p
 you have said which. Keep no hand-written list of cue phrases: it reads the generator, and a
 hand-kept list goes stale.
 
+**It reads `t("literal")` calls, so a cue built from a variable is invisible to it.** A scene
+that cues a row of pills from a list - `for c in [...]: M.rise(..., t(c))` - passes this check
+with every one of those cues unverified, and they are exactly the cues a repeated row uses. The
+reliable check is to RUN the generator rather than scan it: build the composition against its
+own transcript in a copy and let the generator's own cue resolution refuse. Do that before a
+render is started, not after - a cue fault found afterwards has already cost the render slot.
+
 What it reports is ambiguity, not a defect, and the two are worth telling apart before you
 touch a timing. Repeats cluster because a module says its key phrase once in the scene that
 defines it and again in the scene that builds on it - and the defining scene comes first, so
