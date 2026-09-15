@@ -198,6 +198,12 @@ way your script does. Four differences, each one measured rather than guessed:
   `centered`.
 - **Compounds separate.** `preflight` comes back `pre flight`, `cannot` as `can not`,
   `lifecycle` as `life cycle`.
+- **And a local aligner glues words together across a dash.** faster-whisper renders some
+  punctuation as an em dash with no spaces and emits both sides as ONE token: a script
+  reading `the provenance thread: occurrence one` aligned as `thread—occurrence`, so a cue
+  ending on `thread` or starting on the next word matched nothing. Three tokens in a
+  969-word module, and four broken cues between them. Cue away from the punctuation, not
+  just away from the spelling.
 
 So a cue quoting any of those resolves against the script you wrote and against nothing in the
 audio. Move the cue onto a neighbouring phrase that contains none of them - that survives a
