@@ -17,13 +17,36 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   the render looks wrong ([ADR-0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md)).
   A deletion `verify.py` reports is not yet a proven drop - a lone function word lost at an
   elision can be the full-file transcript mishearing, not the audio. `verify.py` says how to
-  tell, and it is the same window transcription `repair.py` already does.
+  tell, and it is the same window transcription `repair.py` already does. **Write about 1,200 words
+  a pass.** The 2000-*token* hard limit refuses loudly; the fault that matters arrives earlier and
+  silently, because the clause drop is length-driven - measured clean at 1,398 words and never clean
+  in ten takes at 1,663 (README, "Making narration"). A topic that will not fit is more modules:
+  **add a module rather than cut content**, and join the finished files with `join.py` (README,
+  "Joining modules into one video"), which refuses mismatched parts and a part that did not arrive.
 - **A cue phrase must name one moment.** Run `cue_check.py` (README, "Cueing a reveal") before
   rendering: it proves every phrase a composition cues on occurs exactly once in the narration.
   The lookup takes the first match, so a repeated phrase silently fires a reveal a scene early -
   and the frame looks finished either way. What it flags is ambiguity, not a proven defect:
   confirm against the render before touching a timing, then name the occurrence you
   found - the first match is usually the intended one.
+- **A reveal must have exactly one element to land on.** Run `id_check.py` (README, "Proving
+  a reveal lands") after building and before rendering. A duplicate `id` resolves to the first
+  match, so one element is tweened twice and the other is on screen from its scene's first
+  frame; a tween whose selector matches nothing does the same. `cue_check.py` still passes and
+  the scene's settled frame is identical either way, so only a frame sampled between the two
+  cues shows it.
+- **Prove a composition before you spend the narration on it.** A composition reads its
+  transcript, so nothing about it runs until the audio exists - which hides a generator that
+  raises, an ambiguous cue and a duplicate id until the expensive half is already paid for.
+  `dry_run.py` (README, "Proving a composition before you spend the narration on it") writes a
+  synthetic transcript from the script so the generator and both guards run for free. It proves
+  no timing - every time it writes is invented - only that the composition is well-formed.
+  Related: **a cue is matched against the transcript, and the transcript has no hyphens in it
+  at all.** It also writes numbers as digits (inconsistently - `Screen 1` while `Screen two`
+  stayed words), Americanises spelling (`centred` to `centered`) and separates compounds
+  (`preflight` to `pre flight`). Cue on a phrase carrying none of those: transcript spelling
+  itself is not safe to quote, because the next take may spell it the other way.
+  README, "Write the cue in transcript spelling".
 - **A module ends a measured two seconds after the last word.** Take the measurement with
   `speech_end.py` (README, "Ending a module") and compose the ending on it - never pad or
   trim a rendered file. It refuses to answer when the audio ends mid-speech, because the
@@ -33,6 +56,18 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   with `hyperframes snapshot --at`. Never type the seconds by hand: a scene clip opens
   before its own first word, so a frame taken inside the handover carries two scenes at
   once and reads as a broken render rather than a badly chosen moment.
+- **Two engines, two paths, and no third caller.** `tts.mjs` is the only way to make speech
+  and `transcribe.py` the only way to get word timings; each speaks OpenAI or a local model
+  behind that one path (`--engine`), and `auto` falls back loudly, always printing which
+  engine spoke ([ADR-0009](docs/adr/0009-a-local-voice-and-a-local-aligner.md), README,
+  "Speaking without an account"). Anything needing a transcript calls `transcribe.py` -
+  `repair.py` does, and so should the next thing. The local pair needs a non-system Python
+  (`kokoro-onnx` refuses 3.14) named by `HYPERFRAMES_PYTHON`.
+  **The local voice is deterministic, so taking a module repeatedly is meaningless** - one
+  take, and a drop `verify.py` reports is a fact about the script, not a dice roll. It also
+  mispronounces proper nouns and has no `instructions` control; `--lexicon` respells what is
+  spoken without touching the script the guards check. To tell a mispronunciation from an
+  ASR quirk, run the local aligner over audio you know is right and compare spellings.
 - **Re-voicing a finished video runs the other way round.** ADR-0003 governs what the
   studio makes; a video it is *given* cannot be cued, so the old track is the score
   ([ADR-0008](docs/adr/0008-a-re-voice-is-fitted-to-the-old-track.md), README under
