@@ -496,6 +496,12 @@ This is what makes a piece sound filmed rather than assembled, and it is exact.
 - **Every prop the camera stops on is named** somewhere in the script. [UNNAMED]
 - **The voice stays in the room**: never more than 25 words without naming something in
   the set. [ABSTRACT RUN]
+
+  This and the two rules above set a floor on how long a script has to be for a given set:
+  every prop the camera stops on is named, no stretch runs 25 words without a naming, and
+  no line is only a name. A twenty-prop set does not fit in three hundred words. If the
+  script is fighting these, the set is denser than the script is long - write more, or
+  build fewer destinations.
 - **The frame does not read the line back.** Of the words in a line, discounting the names
   of what is on screen, at most 35% may also be written on a prop covering the frame while
   that line is spoken. Where a word is meant to land on the frame as it is said, declare it
