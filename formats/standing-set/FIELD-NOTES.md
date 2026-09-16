@@ -72,11 +72,15 @@ world units. On a far wall framed wide (`depth` 2.3, `s` 0.22) the same 0.09 mov
 **1,800** - twelve times as far, and enough on its own to make the next move fail its
 kind. Offsets on far, wide framings are the ones to write small.
 
-## Type is measured off a style declaration, never off an SVG attribute
+## Type is measured in both spellings of font-size now
 
-`<text font-size="56px">` is valid SVG and invisible to the component, which then refuses
-the prop for carrying words and declaring no size. Write `style="font-size:56px;..."`.
-This bit twice in one afternoon and the refusal does not say which form it wants.
+`<text font-size="56px">` is valid SVG and `components/standing_set.py` could not see it,
+so a correctly sized prop was refused for "carrying words and declaring no font-size" -
+twice in one afternoon, and the refusal does not say which spelling it wants. Fixed: the
+component reads both, and `_shape()` strips both, since it strips font-size before hashing
+a prop so [TWINS] compares the drawing rather than the words. Recorded because the two
+halves have to move together - reading the attribute without stripping it would let one
+drawing through twice by differing in a number.
 
 ## Departures made by the first piece, and why
 
