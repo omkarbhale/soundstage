@@ -121,6 +121,13 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   writing tells are refused by name before a take is spent. The format states every
   threshold it enforces; do not restate them anywhere else. The slop vocabulary inside
   `script_check.py` DRIFTS - read a current catalogue and update it there.
+- **A composition lives outside the repo and still has to import from it.** ADR-0002 keeps
+  every production under `~/soundstage-content/<name>/`, and `components/standing_set.py`
+  and `components/figure.py` are in the repo, so a generator has to be told where the
+  studio is: it reads `SOUNDSTAGE_STUDIO` and appends `<studio>/components` to `sys.path`.
+  **Append, never insert at 0** - `cues.py` resolves its own transcript off `sys.path[0]`,
+  and prepending the studio silently sends it looking for `components/transcript.json`.
+  The guards take explicit paths and need no variable; only the generator does.
 - **Render on a Linux-native path, never on `/mnt/c`** (README, "Where to render"). The engine
   writes its frame sequence inside the project directory, and on the Windows DrvFs mount those
   tens of thousands of small writes starve the workers: measured on one composition, 3.2 fps
