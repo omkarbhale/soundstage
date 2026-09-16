@@ -48,6 +48,9 @@ R = {                              # every threshold the format states, in one p
     "planes": 3, "plane_share": 0.55, "depth_ratio": 2.5,
     "regions": 3, "region_props": 2, "contrast": 7.0,
     "hue_gap": 25.0, "lum_gap": 0.12, "accent_hue_gap": 40.0, "grey_sat": 0.06,
+    "wall": 1.5, "layered": 0.5, "layer_seen": 0.08, "specimen_words": 12,
+    "prop_words": 60, "plate_words": 4, "lum_step": 0.04, "hue_step": 25.0,
+    "hue_turn": 70.0,
     "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
     "small_apparent": 30.0, "families": (2, 3),
     "kinds": 4, "kind_share": 0.40, "dur": (0.6, 3.5),
@@ -348,6 +351,47 @@ def main(argv):
                 fault("SAME ACCENT", f"regions {a['name']!r} and {b['name']!r} meet and their "
                                      f"accents are {da:.0f}deg apart - each place has its own")
 
+    deep = max((planes[p] for p in used), default=1.0)
+    for r in regions:
+        if not any(p["region"] == r["name"] and p["role"] == "surface"
+                   and planes[p["plane"]] == deep
+                   and (p["size"][0] >= R["wall"] * fw or p["size"][1] >= R["wall"] * fh)
+                   for p in props):
+            fault("NO ARCHITECTURE", f"region {r['name']!r} has no surface on the deepest plane "
+                                     f"at least {R['wall']} frames across - props stand in a "
+                                     f"built space, not in a void with a colour behind it")
+
+    # The palette goes somewhere. In the order the camera first enters the regions,
+    # the grounds either get steadily lighter or steadily darker, or their hue turns
+    # one way. Three unrelated palettes are three decks.
+    entered, order_r = [], []
+    for sh in shots:
+        for pid in sh["on"]:
+            rn = by_id[pid]["region"]
+            if rn not in entered:
+                entered.append(rn)
+    order_r = [next((r for r in regions if r["name"] == nm), None) for nm in entered]
+    order_r = [r for r in order_r if r and rgb(r["ground"])]
+    if len(order_r) >= 3:
+        ls = [lum(rgb(r["ground"])) for r in order_r]
+        hs = [hue_sat(rgb(r["ground"]))[0] for r in order_r]
+        mono = (all(b - a >= R["lum_step"] for a, b in zip(ls, ls[1:])) or
+                all(a - b >= R["lum_step"] for a, b in zip(ls, ls[1:])))
+        def turn(sign):
+            total = 0.0
+            for a, b in zip(hs, hs[1:]):
+                step = ((b - a) * sign) % 360
+                if not (R["hue_step"] <= step <= 180):
+                    return False
+                total += step
+            return total >= R["hue_turn"]
+        if not (mono or turn(1) or turn(-1)):
+            fault("NO PROGRESSION", f"the grounds in the order the camera meets them "
+                                    f"({' -> '.join(r['name'] for r in order_r)}) neither "
+                                    f"lighten nor darken by {R['lum_step']} a step, nor turn "
+                                    f"{R['hue_step']:.0f}deg a step one way - a palette that "
+                                    f"goes nowhere is three decks in three colours")
+
     bounds_x = sorted({r["box"][0] for r in regions} | {r["box"][0] + r["box"][2]
                                                         for r in regions})[1:-1]
     bounds_y = sorted({r["box"][1] for r in regions} | {r["box"][1] + r["box"][3]
@@ -406,6 +450,31 @@ def main(argv):
     words = json.load(open(tpath, encoding="utf8"))
     tok = [norm(w["text"]) for w in words]
     spoken = words[-1]["end"] if words else m["end"]
+
+    for p in props:
+        cap = R["specimen_words"] if p["role"] == "specimen" else R["prop_words"]
+        if p["words"] > cap:
+            fault("WALL OF TEXT", f"prop {p['id']!r} carries {p['words']} words against a cap of "
+                                  f"{cap} - a specimen is type as an object and every other prop "
+                                  f"is a thing, not a paragraph nobody can read at depth")
+    if m["plate"] is not None and m["plate"] > R["plate_words"]:
+        fault("PLATE", f"the plate carries {m['plate']} words - it is a mark on the frame, not a "
+                       f"place to say something; say it in the world")
+    if re.search(r'tl\.\w+\(\s*"#set-plate', raw):
+        fault("PLATE", "the timeline animates the plate - the one thing fixed to the frame holds "
+                       "still, or it is a slide element in disguise")
+
+    layered = 0
+    for sh in shots:
+        home = {by_id[pid]["plane"] for pid in sh["on"]} or {sh["focus"]}
+        if any(p["plane"] not in home and seen(p, sh, planes, frame) >= R["layer_seen"]
+               for p in props):
+            layered += 1
+    if layered < R["layered"] * len(shots):
+        fault("FLAT FRAME", f"{layered} of {len(shots)} framings carry anything from another "
+                            f"plane at {R['layer_seen'] * 100:.0f}% of the frame - at least half "
+                            f"do, or the camera is photographing one object at a time against a "
+                            f"background")
 
     # --- E. the camera ------------------------------------------------------
     moves = shots[1:]

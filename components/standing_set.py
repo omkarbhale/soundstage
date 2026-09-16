@@ -130,7 +130,7 @@ class Set:
                              f"type in this set is measured, so it is sized where it is written")
         self.props[pid] = {"id": pid, "role": role, "plane": plane, "at": [x, y],
                            "size": [w, h], "region": where, "html": html, "cls": cls,
-                           "px": sizes}
+                           "px": sizes, "words": len(WORDS.findall(_tags_off(html)))}
         self.order.append(pid)
 
     def plate(self, html):
@@ -391,7 +391,8 @@ class Set:
             "regions": self.regions,
             "props": [{k: v for k, v in self.props[p].items() if k != "html"}
                       for p in self.order],
-            "plate": self.plate_html is not None,
+            "plate": (len(WORDS.findall(_tags_off(self.plate_html)))
+                      if self.plate_html is not None else None),
             "events": self.events, "changes": self.changes,
             "shots": [{"kind": s["kind"], "on": s["on"], "cx": s["cx"], "cy": s["cy"],
                        "s": s["s"], "focus": s["focus"], "cue": s["cue"],
