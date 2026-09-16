@@ -56,6 +56,10 @@ DOF_MAX = 15.0
 
 FONT_SIZE = re.compile(r"font-size:\s*([\d.]+)px")
 WORDS = re.compile(r"[A-Za-z]{2,}")
+# What a prop is MADE of, so a role is a claim about markup rather than a label.
+GEOM = re.compile(r"(?:width|height|left|top|background|transform|border|stroke|d)\s*[:=]")
+COLOUR = re.compile(r"(?:^|[;\"\s])(?:color|background|background-color|border-color|fill|"
+                    r"stroke)\s*:\s*([^;\"]+)")
 
 
 def _tags_off(markup):
@@ -125,12 +129,22 @@ class Set:
             raise SystemExit(f"prop {pid!r} stands in no region - every part of the world "
                              f"the camera visits has a palette")
         sizes = sorted({float(v) for v in FONT_SIZE.findall(html)})
+        markup = {
+            "svg": "<svg" in html.lower(),
+            "img": "<img" in html.lower(),
+            "fig": "fig-frame" in html,
+            "geom": sum(1 for tag in re.findall(r"<[^>]*>", html) if GEOM.search(tag)),
+            "mono": any("mono" in f.lower()
+                        for f in re.findall(r"font-family:\s*([^;\"]+)", html)),
+            "colours": [c.strip() for c in COLOUR.findall(html)],
+        }
         if WORDS.search(_tags_off(html)) and not sizes:
             raise SystemExit(f"prop {pid!r} carries words and declares no font-size - "
                              f"type in this set is measured, so it is sized where it is written")
         self.props[pid] = {"id": pid, "role": role, "plane": plane, "at": [x, y],
                            "size": [w, h], "region": where, "html": html, "cls": cls,
-                           "px": sizes, "words": len(WORDS.findall(_tags_off(html)))}
+                           "px": sizes, "words": len(WORDS.findall(_tags_off(html))),
+                           "markup": markup}
         self.order.append(pid)
 
     def plate(self, html):
@@ -153,14 +167,14 @@ class Set:
         self.changes.append({"prop": pid, "cue": cue, "note": note})
 
     # ---------------------------------------------------------------- camera
-    def open(self, *, on, pad=0.2, focus=None):
+    def open(self, *, on, pad=0.2, focus=None, off=(0.0, 0.0)):
         """The framing the module starts on."""
         if self.shots:
             raise SystemExit("open() is the first framing and there is one of them")
-        self.shots.append(self._shot("open", on, pad, focus, None, 0.0, ""))
+        self.shots.append(self._shot("open", on, pad, focus, None, 0.0, "", off=off))
 
     def move(self, kind, *, on=None, cue, dur, pad=0.2, focus=None, ease="power2.inOut",
-             note=""):
+             note="", off=(0.0, 0.0)):
         """A camera move, starting on the word it quotes.
 
         `on` names the props it arrives on, and the framing is computed from them - a
@@ -186,7 +200,7 @@ class Set:
             return
         if not on:
             raise SystemExit(f"a {kind} names the props it arrives on")
-        self.shots.append(self._shot(kind, on, pad, focus, cue, dur, ease, note))
+        self.shots.append(self._shot(kind, on, pad, focus, cue, dur, ease, note, off=off))
 
     # ----------------------------------------------------------------- build
     def render(self, t, *, end):
@@ -237,7 +251,7 @@ class Set:
     def _resolve(self, t, cue):
         return float(t(*cue) if isinstance(cue, (tuple, list)) else t(cue))
 
-    def _shot(self, kind, on, pad, focus, cue, dur, ease, note=""):
+    def _shot(self, kind, on, pad, focus, cue, dur, ease, note="", off=(0.0, 0.0)):
         """A framing computed from the props it names.
 
         The camera is placed so every named prop's PROJECTED box sits inside the frame
@@ -255,8 +269,23 @@ class Set:
                              self.planes[self.props[p]["plane"]]) for p in on], fh * room)
         # Rounded here and nowhere else, so the manifest a guard re-derives from and
         # the timeline it re-derives are the same numbers to the last digit.
+        # The offset moves the camera, not the props: the subject slides off centre by
+        # that fraction of the frame. It still has to fit, which is what refuses an
+        # offset large enough to push the thing being framed out of the picture.
+        s = min(sx, sy)
+        cx -= float(off[0]) * fw / s
+        cy -= float(off[1]) * fh / s
+        for pid in on:
+            p = self.props[pid]
+            d = self.planes[p["plane"]]
+            x0 = (p["at"][0] - cx) * s / d + fw / 2
+            y0 = (p["at"][1] - cy) * s / d + fh / 2
+            if (x0 < 0 or y0 < 0 or x0 + p["size"][0] * s / d > fw
+                    or y0 + p["size"][1] * s / d > fh):
+                raise SystemExit(f"framing on {sorted(on)} offset by {tuple(off)} pushes "
+                                 f"{pid!r} off the frame - widen `pad` or offset less")
         return {"kind": kind, "on": list(on), "cx": round(cx, 3), "cy": round(cy, 3),
-                "s": round(min(sx, sy), 6),
+                "s": round(s, 6), "off": [float(off[0]), float(off[1])],
                 "focus": focus or self.props[on[0]]["plane"], "cue": cue, "dur": dur,
                 "ease": ease, "note": note}
 
@@ -395,7 +424,8 @@ class Set:
                       if self.plate_html is not None else None),
             "events": self.events, "changes": self.changes,
             "shots": [{"kind": s["kind"], "on": s["on"], "cx": s["cx"], "cy": s["cy"],
-                       "s": s["s"], "focus": s["focus"], "cue": s["cue"],
+                       "s": s["s"], "off": s.get("off", [0.0, 0.0]),
+                       "focus": s["focus"], "cue": s["cue"],
                        "at": round(s["at"], 3), "dur": s["dur"], "ease": s["ease"],
                        "note": s["note"]}
                       for s in self.shots],

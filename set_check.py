@@ -31,7 +31,9 @@
 #
 # Run it after building and before rendering, beside cue_check.py, id_check.py and
 # figure_check.py.
+import collections
 import json
+import math
 import re
 import sys
 import unicodedata
@@ -48,7 +50,12 @@ R = {                              # every threshold the format states, in one p
     "planes": 3, "plane_share": 0.55, "depth_ratio": 2.5,
     "regions": 3, "region_props": 2, "contrast": 7.0,
     "hue_gap": 25.0, "lum_gap": 0.12, "accent_hue_gap": 40.0, "grey_sat": 0.06,
-    "wall": 1.5, "layered": 0.5, "layer_seen": 0.08, "specimen_words": 12,
+    "wall": 1.5, "layer_seen": 0.08, "specimen_words": 12,
+    "travel_full": 0.12, "passed_seen": 0.08, "samples": (0.25, 0.5, 0.75),
+    "centred": 0.40, "centre_slack": 0.06,
+    "move_px": 0.015, "move_pct": 50.0, "move_scale": 0.15, "move_rot": 6.0,
+    "move_alpha": 0.5, "move_lum": 0.10, "move_hue": 25.0, "move_size_pct": 25.0,
+    "prop_ink": 4.5,
     "prop_words": 60, "plate_words": 4, "lum_step": 0.04, "hue_step": 25.0,
     "hue_turn": 70.0,
     "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
@@ -177,6 +184,36 @@ def box_of(prop, shot, planes, frame):
             prop["size"][0] * s, prop["size"][1] * s)
 
 
+def during(a, b, p):
+    """The camera the renderer really shows at path fraction `p` of a move.
+
+    Each plane's x, y and scale are tweened straight, so the scale runs linearly and
+    the centre is the scale-weighted mix - the same camera for every plane, which is
+    what makes this the frame the viewer sees rather than a guess at it."""
+    s = (1 - p) * a["s"] + p * b["s"]
+    return {"cx": ((1 - p) * a["cx"] * a["s"] + p * b["cx"] * b["s"]) / s,
+            "cy": ((1 - p) * a["cy"] * a["s"] + p * b["cy"] * b["s"]) / s,
+            "s": s, "focus": b["focus"], "on": b["on"]}
+
+
+def covered(shot, props, planes, frame, skip=("surface",)):
+    """How much of the frame carries something that is not the backdrop.
+
+    Counted over a grid rather than summed, so stacking three props in one place
+    does not read as three times the frame."""
+    fw, fh = frame
+    gx, gy = 64, 36
+    cells = set()
+    for p in props:
+        if p["role"] in skip:
+            continue
+        x, y, w, h = box_of(p, shot, planes, frame)
+        for i in range(max(0, int(x / fw * gx)), min(gx, math.ceil((x + w) / fw * gx))):
+            for j in range(max(0, int(y / fh * gy)), min(gy, math.ceil((y + h) / fh * gy))):
+                cells.add((i, j))
+    return len(cells) / (gx * gy)
+
+
 def seen(prop, shot, planes, frame):
     """How much of the frame a prop covers under one framing, as a fraction."""
     fw, fh = frame
@@ -184,6 +221,67 @@ def seen(prop, shot, planes, frame):
     ix = max(0.0, min(fw, x + w) - max(0.0, x))
     iy = max(0.0, min(fh, y + h) - max(0.0, y))
     return ix * iy / (fw * fh)
+
+
+# ------------------------------------------------------------------ the timeline
+STMT = re.compile(r'tl\.(fromTo|from|to|set)\(\s*"([^"]+)"\s*,(.*?)\)\s*;', re.S)
+PAIR = re.compile(r'([A-Za-z]\w*)\s*:\s*("[^"]*"|[-+\d.eE]+|[^,}]+)')
+
+
+def tweens(raw):
+    out = []
+    for m in STMT.finditer(raw):
+        tail = m.group(3)
+        objs = [dict((k, v.strip().strip('"')) for k, v in PAIR.findall(o))
+                for o in re.findall(r"\{([^{}]*)\}", tail)]
+        pos = re.search(r",\s*([\d.]+)\s*$", tail.strip())
+        out.append({"how": m.group(1), "sel": m.group(2), "objs": objs,
+                    "at": float(pos.group(1)) if pos else None})
+    return out
+
+
+def num(o, k):
+    try:
+        return float(o[k])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def moved(tw, k, frame):
+    """What a tween does that a viewer can see, or None.
+
+    Only a `fromTo` says. A `to` leaves its start off the page, so there is nothing
+    to measure and nothing to prove - which is also why the engine prefers it that
+    way for a deterministic render."""
+    if tw["how"] != "fromTo" or len(tw["objs"]) < 2:
+        return None
+    a, b = tw["objs"][0], tw["objs"][1]
+    fw, fh = frame
+    for key, span in (("x", fw), ("y", fh), ("width", fw), ("height", fh)):
+        p, q = num(a, key), num(b, key)
+        if p is not None and q is not None and abs(q - p) * k / span >= R["move_px"]:
+            return f"{key} by {abs(q - p) * k / span * 100:.1f}% of the frame"
+    for key in ("xPercent", "yPercent"):
+        p, q = num(a, key), num(b, key)
+        if p is not None and q is not None and abs(q - p) >= R["move_pct"]:
+            return f"{key} by {abs(q - p):.0f}"
+    for key in ("scale", "scaleX", "scaleY"):
+        p, q = num(a, key), num(b, key)
+        if p is not None and q is not None and abs(q - p) >= R["move_scale"]:
+            return f"{key} by {abs(q - p):.2f}"
+    p, q = num(a, "rotation"), num(b, "rotation")
+    if p is not None and q is not None and abs(q - p) >= R["move_rot"]:
+        return f"rotation by {abs(q - p):.0f} degrees"
+    for key in ("opacity", "autoAlpha"):
+        p, q = num(a, key), num(b, key)
+        if p is not None and q is not None and abs(q - p) >= R["move_alpha"]:
+            return f"{key} by {abs(q - p):.2f}"
+    for key in ("color", "backgroundColor", "borderColor", "fill", "stroke"):
+        p, q = rgb(a.get(key, "")), rgb(b.get(key, ""))
+        if p and q and (abs(lum(p) - lum(q)) >= R["move_lum"]
+                        or hue_gap(hue_sat(p)[0], hue_sat(q)[0]) >= R["move_hue"]):
+            return f"{key} to another colour"
+    return None
 
 
 # ------------------------------------------------------------------- cueing
@@ -219,6 +317,18 @@ def main(argv):
     fw, fh = frame
     n = len(props)
     by_id = {p["id"]: p for p in props}
+    moves = shots[1:]
+    # The frames BETWEEN the framings. Everything the format claims about travelling
+    # through a space is a claim about these, and nothing else in this file could see
+    # them.
+    legs = [(b, [during(a, b, q) for q in R["samples"]]) for a, b in zip(shots, moves)]
+    mid = [c for _b, cams in legs for c in cams]
+    tl_all = tweens(raw)
+    roots = {}
+    for tw in tl_all:
+        m2 = re.fullmatch(r"#pr-([\w-]+)", tw["sel"].strip())
+        if m2:
+            roots.setdefault(m2.group(1), []).append(tw)
 
     # --- A. the composition is a set, not a stack ---------------------------
     picture = [c for c in doc.clips if c[0] not in ("audio", "video")]
@@ -233,12 +343,26 @@ def main(argv):
         fault("PLATES", f"{doc.plate} plates - a set fixes one thing to the frame")
 
     declared = {e["prop"] for e in m["events"]}
-    ENTER = re.compile(r'tl\.(?:fromTo|from|set)\(\s*"#pr-([\w-]+)[^"]*"\s*,\s*\{([^}]*)\}')
-    for pid, obj in ENTER.findall(raw):
-        if re.search(r"(?:autoAlpha|opacity)\s*:\s*0(?:\.0+)?\s*(?:[,}]|$)", obj) \
-                and pid not in declared:
-            fault("ARRIVES", f"prop {pid!r} starts invisible and is not a declared event - "
-                             f"a prop that appears when the camera reaches it is a bullet")
+    staged = declared | {c["prop"] for c in m["changes"]}
+    for pid, tws in roots.items():
+        for tw in tws:
+            a = tw["objs"][0] if tw["objs"] else {}
+            # Every way of starting a prop off the frame, not only a fade. A prop held
+            # at scale 0 or shoved a full box sideways is the same bullet.
+            hidden = (any(num(a, k) == 0 for k in ("opacity", "autoAlpha", "scale",
+                                                   "scaleX", "scaleY"))
+                      or any(abs(num(a, k) or 0) >= 100 for k in ("xPercent", "yPercent")))
+            if hidden and pid not in declared:
+                fault("ARRIVES", f"prop {pid!r} starts off the frame and is not a declared "
+                                 f"event - a prop that appears when the camera reaches it is "
+                                 f"a bullet")
+            if pid not in staged and any(
+                    num(a, k) != num(tw["objs"][-1], k)
+                    for k in ("x", "y", "xPercent", "yPercent")
+                    if num(a, k) is not None or num(tw["objs"][-1], k) is not None):
+                fault("RESTAGED", f"prop {pid!r} is moved by the timeline and is neither a "
+                                  f"declared change nor an event - a prop stands where it was "
+                                  f"placed; the camera goes to it")
     if len(m["events"]) > R["event_share"] * n:
         fault("ARRIVALS", f"{len(m['events'])} of {n} props arrive - at most "
                           f"{int(R['event_share'] * 100)}% of a set may be built in front of "
@@ -273,11 +397,23 @@ def main(argv):
                            f"{int(R['target_share'] * 100)}% may be destinations, or the set is "
                            f"slides laid side by side")
     for p in props:
-        best = max(seen(p, s, planes, frame) for s in shots)
+        best = max(seen(p, s, planes, frame) for s in shots + mid)
         if best < R["prop_seen"]:
             fault("UNSEEN", f"prop {p['id']!r} never covers {R['prop_seen'] * 100:.0f}% of the "
                             f"frame (best {best * 100:.1f}%) - it is in the file and not in the "
                             f"film")
+    # The other half of the same rule: a prop that is not a destination has to be
+    # something the camera PASSES. One that only ever shows up where the camera
+    # stopped is a destination that was not named.
+    for p in props:
+        if p["id"] in targets or p["role"] == "surface":
+            continue
+        best = max([seen(p, c, planes, frame) for c in mid] or [0.0])
+        if best < R["passed_seen"]:
+            fault("ALL STOPS", f"prop {p['id']!r} is not a framing target and never reaches "
+                               f"{R['passed_seen'] * 100:.0f}% of the frame during a move "
+                               f"(best {best * 100:.1f}%) - it stands where the camera stopped, "
+                               f"so it is a destination that forgot to be named")
     for i in range(n):
         for j in range(i + 1, n):
             a, b = props[i], props[j]
@@ -288,6 +424,26 @@ def main(argv):
                 fault("TWINS", f"props {a['id']!r} and {b['id']!r} are the same role at the same "
                                f"size - repeated identical objects belong inside one prop, not "
                                f"beside each other like cards on a slide")
+    NEEDS = {
+        "screen":   (lambda k: k["fig"],
+                     "a frame from components/figure.py; a product screen is measured, "
+                     "never typed out (ADR-0010)"),
+        "glyph":    (lambda k: k["svg"] or k["img"], "an <svg> or an <img>"),
+        "chart":    (lambda k: k["svg"] or k["geom"] >= 3, "an <svg> or 3 drawn parts"),
+        "diagram":  (lambda k: k["svg"] or k["geom"] >= 3, "an <svg> or 3 drawn parts"),
+        "surface":  (lambda k: k["svg"] or k["img"] or k["geom"] >= 2,
+                     "anything drawn on it; a wall is built, not an empty div"),
+        "code":     (lambda k: k["mono"], "a monospace family"),
+        "artifact": (lambda k: k["svg"] or k["img"] or k["geom"] >= 1,
+                     "a drawn face; an object is looked at, not captioned"),
+    }
+    for p in props:
+        want = NEEDS.get(p["role"])
+        k = p.get("markup")
+        if want and k and not want[0](k):
+            fault("ROLE", f"prop {p['id']!r} claims the role {p['role']!r} and carries no "
+                          f"{want[1]}. A role is what a prop is made of, not a word typed "
+                          f"beside it")
     used = {p["plane"] for p in props}
     if len(used) < R["planes"]:
         fault("FLAT", f"{len(used)} plane(s) carry props - a set has at least {R['planes']}, or "
@@ -328,6 +484,24 @@ def main(argv):
     if greys > 1:
         fault("GREY", f"{greys} regions have a near-neutral ground - one may be neutral, the "
                       f"rest are colours")
+
+    grounds = {r["name"]: rgb(r["ground"]) for r in regions}
+    for p in props:
+        g = grounds.get(p["region"])
+        for raw_c in (p.get("markup") or {}).get("colours", []):
+            v = raw_c.strip()
+            if v.startswith("var(") or v in ("none", "transparent", "currentColor"):
+                continue
+            c = rgb(v)
+            if c is None:
+                fault("COLOUR", f"prop {p['id']!r} paints {v!r}, which this cannot read - a "
+                                f"colour inside a prop is a house variable or a hex, so it "
+                                f"can be held to its own ground")
+            elif g and contrast(c, g) < R["prop_ink"]:
+                fault("UNREADABLE", f"prop {p['id']!r} paints {v} on region "
+                                    f"{p['region']!r}'s ground at {contrast(c, g):.1f}:1 - "
+                                    f"{R['prop_ink']}:1 or better, or the region's declared ink "
+                                    f"is a promise the props do not keep")
 
     def adjacent(a, b):
         ax, ay, aw, ah = a["box"]
@@ -413,7 +587,8 @@ def main(argv):
                              "turned")
 
     # --- D. type ------------------------------------------------------------
-    sizes = sorted({round(float(v), 1) for v in re.findall(r"font-size:\s*([\d.]+)px", raw)})
+    # Counted off the props, so six declared sizes that nothing is set in do not pass.
+    sizes = sorted({round(v, 1) for p in props for v in p["px"]})
     if len(sizes) < R["sizes"]:
         fault("ONE SIZE", f"{len(sizes)} type size(s) in the document - a set needs at least "
                           f"{R['sizes']}, because a headline and a body size is a slide")
@@ -469,20 +644,47 @@ def main(argv):
         fault("PLATE", "the timeline animates the plate - the one thing fixed to the frame holds "
                        "still, or it is a slide element in disguise")
 
-    layered = 0
+    subject, last_on = [], []
     for sh in shots:
-        home = {by_id[pid]["plane"] for pid in sh["on"]} or {sh["focus"]}
-        if any(p["plane"] not in home and seen(p, sh, planes, frame) >= R["layer_seen"]
-               for p in props):
-            layered += 1
-    if layered < R["layered"] * len(shots):
-        fault("FLAT FRAME", f"{layered} of {len(shots)} framings carry anything from another "
-                            f"plane at {R['layer_seen'] * 100:.0f}% of the frame - at least half "
-                            f"do, or the camera is photographing one object at a time against a "
-                            f"background")
+        last_on = sh["on"] or last_on
+        subject.append(last_on)
+    for sh, on in zip(shots, subject):
+        home = {by_id[pid]["plane"] for pid in on} or {sh["focus"]}
+        if not any(p["plane"] not in home and seen(p, sh, planes, frame) >= R["layer_seen"]
+                   for p in props):
+            fault("FLAT FRAME", f"the framing on {sh['cue'] or 'the opening'!r} carries nothing "
+                                f"from another plane at {R['layer_seen'] * 100:.0f}% of the "
+                                f"frame - one object against a background is a slide, whatever "
+                                f"brought the camera there")
+    # A centred, level, still subject is the deck's own atom. One is a payoff; every
+    # one is a gallery.
+    dead = []
+    for sh, on in zip(shots, subject):
+        if not on:
+            continue
+        bs = [box_of(by_id[pid], sh, planes, frame) for pid in on]
+        cx = (min(b[0] for b in bs) + max(b[0] + b[2] for b in bs)) / 2
+        cy = (min(b[1] for b in bs) + max(b[1] + b[3] for b in bs)) / 2
+        if abs(cx - fw / 2) / fw <= R["centre_slack"] and \
+                abs(cy - fh / 2) / fh <= R["centre_slack"]:
+            dead.append(sh["cue"] or "the opening")
+    if len(dead) > R["centred"] * len(shots):
+        fault("CENTRED", f"{len(dead)} of {len(shots)} framings put their subject dead centre "
+                         f"within {R['centre_slack'] * 100:.0f}% of the frame - at most "
+                         f"{int(R['centred'] * 100)}% may; offset the rest with `off=`")
 
     # --- E. the camera ------------------------------------------------------
-    moves = shots[1:]
+    # The frames between the framings. A film that clusters its props at the stops and
+    # flies over bare ground between them passes every other rule in this file.
+    for b, cams in legs:
+        thin = [(q, covered(c, props, planes, frame)) for q, c in zip(R["samples"], cams)]
+        worst = min(thin, key=lambda t: t[1])
+        if worst[1] < R["travel_full"]:
+            fault("EMPTY TRAVEL", f"the {b['kind']} on {b['cue']!r} crosses ground carrying "
+                                  f"{worst[1] * 100:.1f}% of the frame at "
+                                  f"{worst[0]:.0%} through (backdrop not counted) - at least "
+                                  f"{R['travel_full'] * 100:.0f}% the whole way, or the camera "
+                                  f"is over a blank wall and this is a transition")
     kinds = [s["kind"] for s in moves]
     if len(set(kinds)) < R["kinds"]:
         fault("ONE MOVE", f"{len(set(kinds))} move kind(s) ({', '.join(sorted(set(kinds)))}) - "
@@ -629,36 +831,45 @@ def main(argv):
     if len(m["changes"]) < R["changes"]:
         fault("STATIC", f"{len(m['changes'])} declared change(s) - at least {R['changes']}: the "
                         f"set is in a different state at the end than at the start")
-    touched = {}
-    for st in re.findall(r'tl\.\w+\((.*?)\)\s*;', raw, re.S):
-        ids = re.findall(r'"#pr-([\w-]+)', st)
-        if not ids:
-            continue
-        pos = re.search(r",\s*([\d.]+)\s*$", st.strip())
-        # A tween that only carries a prop's opacity between 0.9 and 1 moves nothing on
-        # the frame. It is the cheapest way to answer this guard and it is not a change.
-        props_set = set(re.findall(r"([A-Za-z]\w*)\s*:", st))
-        noop = (props_set <= {"opacity", "autoAlpha", "duration", "ease", "delay"} and
-                all(0.9 <= float(v) <= 1.0 for v in
-                    re.findall(r"(?:opacity|autoAlpha)\s*:\s*([\d.]+)", st)))
-        for pid in ids:
-            touched.setdefault(pid, []).append(
-                (float(pos.group(1)) if pos else None, noop))
+    # A declared change has to BE one: written as a fromTo so both states are on the
+    # page, moving something a viewer can see, on the beat that announces it, and not
+    # on the wall - a backdrop does not do anything.
+    per_prop = collections.Counter(c["prop"] for c in m["changes"])
+    for pid, cnt in per_prop.items():
+        if cnt > 1:
+            fault("STATIC", f"prop {pid!r} carries {cnt} declared changes - one prop, one "
+                            f"change, or three changes is three lines about one thing")
     for c in m["changes"]:
-        runs = touched.get(c["prop"], [])
-        real = [(at, no) for at, no in runs if not no]
-        if not runs:
+        prop = by_id[c["prop"]]
+        if prop["role"] == "surface":
+            fault("STATIC", f"change {c['note']!r} is declared on {c['prop']!r}, which is a "
+                            f"surface - a wall does not do anything, and a change on the "
+                            f"backdrop is a change nobody sees")
+            continue
+        sh = [x for x in shots if x["at"] <= c["at"] + 1e-6][-1]
+        k = sh["s"] / planes[prop["plane"]]
+        mine = [tw for tw in tl_all
+                if re.match(rf"#pr-{re.escape(c['prop'])}(?![\w-])", tw["sel"].strip())]
+        if not mine:
             fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is declared and nothing in "
                             f"the timeline touches that prop")
-        elif not real:
-            fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is answered by a tween that "
-                            f"moves nothing on the frame - a change is a different state, not a "
-                            f"line that satisfies a guard")
-        elif not any(at is None or abs(at - c["at"]) <= 1.0 for at, _no in real):
+            continue
+        real = [(tw, moved(tw, k, frame)) for tw in mine]
+        big = [(tw, why) for tw, why in real if why]
+        if not big:
+            fault("STATIC", f"change {c['note']!r} on {c['prop']!r} moves nothing a viewer can "
+                            f"see. A change is written as a fromTo and shifts the prop "
+                            f"{R['move_px'] * 100:.1f}% of the frame, half its own box, "
+                            f"{R['move_scale']} of scale, {R['move_rot']:.0f} degrees, "
+                            f"{R['move_alpha']} of opacity, or to another colour")
+        elif not any(tw["at"] is None or abs(tw["at"] - c["at"]) <= 1.0 for tw, _w in big):
+            near = min((tw["at"] for tw, _w in big if tw["at"] is not None),
+                       key=lambda a: abs(a - c["at"]), default=None)
             fault("OFF ITS BEAT", f"change {c['note']!r} is cued on {c['cue']!r} at "
-                                  f"{c['at']:.1f}s and the nearest tween touching {c['prop']!r} "
-                                  f"is at {min((a for a, _n in real), key=lambda a: abs(a - c['at'])):.1f}s "
-                                  f"- a change happens on the word that announces it (ADR-0003)")
+                                  f"{c['at']:.1f}s and the nearest tween that moves "
+                                  f"{c['prop']!r} is at {near:.1f}s - a change happens on the "
+                                  f"word that announces it (ADR-0003)")
+
     live = {}
     for e in m["events"]:
         s = [sh for sh in shots if sh["at"] <= e["at"] + 1e-6][-1]
