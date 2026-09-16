@@ -14,6 +14,71 @@ the whole language.
 A piece in this format is **one clip**. A second picture clip is a second slide, and
 `set_check.py` refuses it.
 
+---
+
+# What a piece looks like
+
+A room that was built, dressed and then filmed.
+
+**The frame is mostly still.** When the camera moves it moves once, for a reason, and
+stops somewhere worth stopping - and while it is moving, nothing in the room moves. The
+eye is given one thing at a time: the camera crossing the floor, or one object doing one
+thing while the camera watches it. Two at once is noise, and noise reads as cheap however
+well either half is made. A crowded frame is not effort. A still frame with one thing
+happening in it, held long enough to land, is.
+
+**Depth carries what a deck carries with layout.** Something stands close to the lens and
+slides past fast. The subject sits at the middle distance, sharp. A wall recedes behind
+it, soft, because the lens is focused forward. Every frame is three distances at once,
+and travelling through them is what makes the space real rather than drawn.
+
+**Colour belongs to places.** The room a piece begins in is not the colour of the room it
+ends in, and the change arrives underneath the camera while it travels instead of cutting
+between palettes. Crossing from one region into the next should feel like walking through
+a door, not like a slide turning.
+
+**Type is an object with a size and a position.** Some of it is enormous - a word built
+at the scale of a wall, which the camera backs off to read whole. Some of it is small
+enough that the camera has to go and get it. How big a thing is, is an argument about how
+much it matters, and a piece where everything is one size is an argument about nothing.
+
+**A move is spent, not used.** There are five, each means something, and each answers the
+question the words just raised. Where the words raise none, the camera holds. A piece
+that runs out of reasons and keeps moving is a screensaver; a piece that moves only when
+it must reads as directed. The move is the transition - there is no other kind here, and
+none is decorative.
+
+**Care shows up in particular places, and they are where to spend it.** Every object in
+the room is its own drawing rather than one drawing twelve times. The ground a prop
+stands on is built rather than filled. The camera lands on compositions instead of on
+subjects centred in empty frames. The set is in a different state at the end than at the
+start, and a viewer can see which parts of it moved.
+
+Everything measured below is the floor under this. It exists to stop a piece falling
+through, not to describe what a good one is.
+
+# What a piece sounds like
+
+Someone standing in the room, talking about what is in front of them.
+
+**The voice never says where you are in it.** No section being introduced, no "first,
+second, finally", no summary of what was just covered. Those are a contents page read
+aloud, and a set narrated from a contents page is a deck with better lighting. The voice
+names things and says what they do.
+
+**The words and the camera are bound at the moment of the move.** The line that sends the
+camera somewhere is the line that names what is there. That bond is what makes the piece
+feel filmed rather than assembled: the picture goes where the sentence goes, because the
+sentence is the reason.
+
+**Lines vary the way speech varies.** Some land in four words. Some run long enough to
+carry a whole thought. A script of even fifteen-word declaratives is bullet prose with
+the bullets taken out, and it sounds like one whatever is on screen.
+
+**It opens on a thing and ends on what changed.** The first line names what the camera is
+already looking at. The last names something that is not how it was at the start. Nothing
+is introduced and nothing is recapped, because there is no list to open or close.
+
 ## Read these first, and do not repeat them
 
 | For                                                                    | Go to             |
@@ -140,6 +205,12 @@ several of them at once.
 
 - **At least 12 props, in at least 4 roles**, and at most **40%** of them specimens.
   [THIN SET, ONE NOTE, ALL WORDS]
+- **Everything but a `surface` has a name**, one to four words and its own, because the
+  narration is held to it. `standing_set.py` refuses an unnamed prop at build.
+- **Every prop is its own drawing.** Two props whose markup matches once the words and
+  their sizes are stripped are one prop placed twice; at most three may be cut from one
+  stencil. A room furnished by calling one helper twelve times is a stock photograph of a
+  room. [TWINS]
 - **A role is what a prop is made of, not a word typed beside it.** A `screen` carries a
   frame from `components/figure.py`; a `glyph` an `<svg>` or an `<img>`; a `chart` or a
   `diagram` an `<svg>` or three drawn parts; a `surface` something drawn on it; a `code`
@@ -204,6 +275,8 @@ way a typed highlight is. [HAND-DRIVEN]
   every move, props that are not `surface` cover at least 12% of the frame. Cluster the
   props at the destinations and the flights between them are transitions, and this format
   has no transitions. [EMPTY TRAVEL]
+- **At most two moves of one kind run consecutively.** A move is spent on the change of
+  view the words asked for; three pushes in a row is a habit. [ONE MOVE]
 - **At most 40% of framings put their subject dead centre**, within 6% of the frame
   centre on both axes. Offset the rest with `off=`, which moves the camera and leaves the
   props where they stand. A subject centred, level and still is the deck's own atom: one
@@ -235,6 +308,13 @@ way a typed highlight is. [HAND-DRIVEN]
   scale, 6 degrees, 0.5 of opacity, or to another colour**, within a second of the word
   that announces it (ADR-0003). Anything smaller is a line written for the guard.
   [STATIC, OFF ITS BEAT]
+- **One thing moves at a time.** The camera crosses the room, or one prop does one
+  thing; never both, and never two props together. Restraint is the format's whole look:
+  a frame with three things animating reads as cheap, and `motion-doctrine`'s ban on idle
+  motion is the other half of the same rule. [TWO AT ONCE]
+- **The changes are not one gesture repeated.** At most half of them move on the same
+  channel. A lamp lifting, a count climbing and a contract being signed are three
+  different things happening. [STATIC]
 - **At most 60% of props may be framing targets.** The rest is space the camera passes
   through on the way, and it is what makes the piece feel like a place rather than a
   route. A set where every prop is a destination is slides laid side by side. [ALL STOPS]
@@ -247,10 +327,64 @@ way a typed highlight is. [HAND-DRIVEN]
   not the opening framing. The last thing the viewer gets is the whole space they have
   been through, different from how they found it. [NO PAYOFF]
 
-# 9. Build it in this order
+# 9. The narration
 
-1. Write the world: size, regions and their palette progression, planes.
-2. Place every prop. Say out loud what each one is and which region it stands in.
+Half the deck feeling lives in the words. The studio owns how narration is made - README,
+"Making narration", and ADR-0003 for what is cued from what; this owns how it sounds and
+what binds it to the set. `script_check.py` reads the script rather than the transcript,
+so all of it is refused before a take is spent.
+
+## The register
+
+- **Nothing announces itself.** No section introduced, no "as you can see", no "in this
+  module", no summary at the end. A set has no sections, so there is nothing to introduce
+  and nothing to recap. [SIGNPOST]
+- **No line opens on a counter** - "first", "second", "next", "finally", "also". A list
+  read out loud is the thing this format replaces. [SIGNPOST]
+
+## The shape of a line
+
+- **A line is one thought**, at most 30 words. [LONG LINE]
+- **The rhythm varies**: one line in five lands in 8 words or fewer, one runs past 22, and
+  the spread of line lengths is at least 5 words. Even declaratives are bullet prose with
+  the bullets taken out. [FLAT VOICE]
+- **A punch is worth something because its neighbours are not punches**: at most 15% of
+  lines are three words or fewer. [STACCATO]
+- **No three lines in a row open on the same word**, and no opening word carries more than
+  20% of them. [PARALLEL]
+- **Nothing is said twice in the same words.** Six words repeated verbatim is filler.
+  [PADDING]
+
+## The bond to the set
+
+This is what makes a piece sound filmed rather than assembled, and it is exact.
+
+- **The line that launches the camera names where it lands.** A move's cue phrase sits in
+  a line that names a prop that move frames. The same holds for a change and for an event:
+  the cue sits in a line that names the thing that changes or arrives. [UNMOTIVATED]
+- **A name is not a line.** The line carrying a cue runs at least 8 words, and prop names
+  are at most 15% of the script. A script that is mostly labels is a caption track.
+  [NAME DROP]
+- **Every prop the camera stops on is named** somewhere in the script. [UNNAMED]
+- **The voice stays in the room**: never more than 25 words without naming something in
+  the set. [ABSTRACT RUN]
+
+## How it opens and how it ends
+
+- **It opens on the thing the camera is already looking at** - the opening framing's
+  subject, named in the first line or the second. Not on what is coming. [AGENDA]
+- **It ends on what the set is now**: the last two lines name a prop that changed.
+  [RECAP]
+
+Write the script first, build the set against it, then run this with the picture guards in
+the dry run. A cue quoted from the script is matched against the audio by `cue_check.py`
+and spelled the way the README's "Write the cue in transcript spelling" says; this guard
+never looks at the audio and does not replace it.
+
+# 10. Build it in this order
+
+1. Write the script, then the world: size, regions and their palette progression, planes.
+2. Place and name every prop. Say out loud what each one is and which region it stands in.
 3. Write the framings and the moves, cued from the narration. `--why` prints where every
    prop is seen and how much ground each move crosses; a prop's reach depends on its
    plane and no framing shows what a move passes, so place props against that rather than
@@ -258,13 +392,14 @@ way a typed highlight is. [HAND-DRIVEN]
 4. Declare the events and the changes, and write their tweens.
 5. `python3 dry_run.py narration.txt <composition>` then build, so every fault below
    surfaces before the narration is paid for.
-6. Run the guards. All four, every time:
+6. Run the guards. All five, every time:
 
 ```
 python3 cue_check.py <composition>/transcript.json <composition>/gen.py
 python3 id_check.py <composition>/index.html
 python3 figure_check.py <composition>/index.html
 python3 set_check.py <composition>/index.html <composition>/transcript.json [--why]
+python3 script_check.py <composition>/index.html narration.txt
 ```
 
 `review_frames.py` picks the seconds to look at; `hyperframes snapshot --at` captures
@@ -295,6 +430,13 @@ are refused anyway:
 | A text block labelled `chart`                                     | a text block [ROLE]   |
 | Every framing a subject centred, level and still                  | a gallery [CENTRED]   |
 | A prop slid into place to suit the camera                         | staging [RESTAGED]    |
+| Twelve props from one drawing helper                              | a stock photograph [TWINS] |
+| Nine changes that are all the same slide                          | one animation repeated [STATIC] |
+| The camera moving while three props animate                       | noise [TWO AT ONCE]   |
+| "In this section we will look at three things"                    | a contents page read aloud [SIGNPOST] |
+| Fifteen-word declaratives, each opening the same way              | bullet prose [FLAT VOICE, PARALLEL] |
+| A line that sends the camera somewhere it does not name           | assembled, not filmed [UNMOTIVATED] |
+| A script that ends by recapping what it covered                   | a deck [RECAP]        |
 | A change declared, and a tween that moves nothing answering it    | a line written for the guard [STATIC] |
 | A big empty world with everything standing in one frame of it     | a poster [SMALL WORLD] |
 | The set ends exactly as it started                                | nothing was learned by going [NO PAYOFF] |
