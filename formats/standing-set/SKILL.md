@@ -54,7 +54,7 @@ S.plane("far", 2.4); S.plane("mid", 1.0); S.plane("near", 0.62)
 S.region("intake", (0, 0, 4200, 2600), ground="#0b1522", ink="#eaf2ff", accent="#5fe0c0")
 S.prop("handler", "code", "mid", at=(4650, 1400), size=(2100, 1000), html=...)
 S.plate('<svg class="mark">…</svg>')
-S.open(on=["intake"], pad=0.20)
+S.open(on=["handler"], pad=0.20)
 S.move("travel", on=["queue"], cue="carried through", dur=2.4, pad=0.14)
 S.move("rack", cue="what stands behind", dur=0.9, focus="far")
 S.event("lamp", cause="chip", cue="the light comes up", note="the lamp lifts")
@@ -93,6 +93,7 @@ palette changes because the camera went somewhere.
 - Two regions that meet differ by **25 degrees of hue or 0.12 of relative luminance**,
   and their accents differ by **40 degrees**. [SAME ROOM, SAME ACCENT]
 - **At most one region is neutral.** The rest are colours. [GREY]
+- Grounds, inks and accents are written as hex. [COLOUR]
 - In the order the camera first enters them, the grounds **lighten steadily, darken
   steadily, or turn one way round the wheel** - 0.04 of luminance a step, or 25 degrees
   a step and 70 in total. Three unrelated palettes are three decks in three colours.
@@ -124,16 +125,16 @@ read as a move.
 A prop is a thing that exists in the space. Eight roles, and the frame is built out of
 several of them at once.
 
-| Role       | What it is                              | How it stands                                                                 |
-| ---------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| `surface`  | architecture: a wall, a floor, a grid, a plan | deepest populated plane, at least 1.5 frames across, one per region      |
-| `screen`   | a product screen                        | built with `components/figure.py`; the measured highlight is unchanged here    |
-| `code`     | a block of source                       | shown whole and read in part: the camera pushes to the lines the words name    |
-| `diagram`  | nodes and edges                         | laid out in the world, so the camera can travel along it rather than reveal it |
-| `chart`    | measured data                           | one figure large enough to be a destination                                    |
-| `artifact` | an object: a document, a card, a device | carries the region's accent, never the ink                                     |
-| `glyph`    | a mark or an icon                       | near plane, standing close to a framing the camera visits                      |
-| `specimen` | type as an object                       | at most 12 words [WALL OF TEXT]                                                |
+| Role       | What it is                                    | How it stands                                                              | Refused as        |
+| ---------- | --------------------------------------------- | --------------------------------------------------------------------------- | ----------------- |
+| `surface`  | architecture: a wall, a floor, a grid, a plan | deepest populated plane, 1.5 frames across, one per region                  | [NO ARCHITECTURE] |
+| `screen`   | a product screen                              | built with `components/figure.py`, measured highlight unchanged             | [figure_check.py] |
+| `code`     | a block of source                             | stands whole; the camera pushes in to read the lines the words name         | [NEVER READ]      |
+| `diagram`  | nodes and edges                               | laid out across the world and travelled along, never revealed piece by piece | [ARRIVES]         |
+| `chart`    | measured data                                 | one figure big enough to be a destination on its own                        | [UNSEEN, NO SCALE]|
+| `artifact` | an object: a document, a card, a device       | sized so a push can read its face                                           | [UNSEEN]          |
+| `glyph`    | a mark or an icon                             | near plane, standing close to a framing the camera visits                   | [UNSEEN]          |
+| `specimen` | type as an object                             | at most 12 words                                                            | [WALL OF TEXT]    |
 
 - **At least 12 props, in at least 4 roles**, and at most **40%** of them specimens.
   [THIN SET, ONE NOTE, ALL WORDS]
@@ -167,13 +168,13 @@ Five moves and the holds between them. A framing is computed from the props it n
 name them, and the centre and the scale follow. A typed camera position is refused the
 way a typed highlight is. [HAND-DRIVEN]
 
-| Move     | What it does                          | What proves it                                                            |
-| -------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| `travel` | goes somewhere                        | crosses at least 0.9 frames, scale within 15%                              |
-| `push`   | gets closer                           | scale at least 1.25x, crosses at most 1.0 frames                           |
-| `pull`   | backs off                             | scale at most 0.8x, crosses at most 1.0 frames                             |
-| `arc`    | turns around something                | crosses 0.15-0.6 frames at constant scale, shearing its planes by 0.25     |
-| `rack`   | changes what is sharp                 | the framing does not move and the focus plane does                          |
+| Move     | What it does           | What proves it                                                         | Refused as     |
+| -------- | ---------------------- | ----------------------------------------------------------------------- | -------------- |
+| `travel` | goes somewhere         | crosses at least 0.9 frames, scale within 15%                           | [NOT A TRAVEL] |
+| `push`   | gets closer            | scale at least 1.25x, crosses at most 1.0 frames                        | [NOT A PUSH]   |
+| `pull`   | backs off              | scale at most 0.8x, crosses at most 1.0 frames                          | [NOT A PULL]   |
+| `arc`    | turns around something | crosses 0.15-0.6 frames at constant scale, shearing its planes by 0.25  | [NOT AN ARC]   |
+| `rack`   | changes what is sharp  | the framing does not move and the focus plane does                      | [NOT A RACK]   |
 
 - **At least 4 of the 5 appear, and none is more than 40% of the moves.** A camera that
   does one thing is a transition. [ONE MOVE]
@@ -183,7 +184,7 @@ way a typed highlight is. [HAND-DRIVEN]
   quote it in transcript spelling (README, "Write the cue in transcript spelling").
   [NOT SPOKEN, AMBIGUOUS]
 - **The camera never overshoots.** No `back`, `elastic` or `bounce` ease: a camera that
-  overshoots is a whip, and a whip is a cut.
+  overshoots is a whip, and a whip is a cut. `standing_set.py` refuses one at build.
 - **The camera lands every second move.** Three moves running with under 0.8s between
   them is a tour bus. [NO LANDING]
 - **At least two props are framed again later from somewhere else** - a different scale
@@ -209,9 +210,9 @@ way a typed highlight is. [HAND-DRIVEN]
   answered by a tween that moves something on the frame - a prop's opacity nudged between
   0.9 and 1 satisfies nothing - and that tween lands **within a second of the word that
   announces it** (ADR-0003). [STATIC, OFF ITS BEAT]
-- Every prop is a destination is the failure this rations from the other side: **at most
-  60% of props may be framing targets.** The rest is space the camera passes through, and
-  it is what makes the film feel like a place. [ALL STOPS]
+- **At most 60% of props may be framing targets.** The rest is space the camera passes
+  through on the way, and it is what makes the piece feel like a place rather than a
+  route. A set where every prop is a destination is slides laid side by side. [ALL STOPS]
 
 # 8. How it opens and how it ends
 
@@ -229,7 +230,7 @@ way a typed highlight is. [HAND-DRIVEN]
 4. Declare the events and the changes, and write their tweens.
 5. `python3 dry_run.py narration.txt <composition>` then build, so every fault below
    surfaces before the narration is paid for.
-6. Run the guards. All five, every time:
+6. Run the guards. All four, every time:
 
 ```
 python3 cue_check.py <composition>/transcript.json <composition>/gen.py
