@@ -74,6 +74,23 @@ from the numbers:
   establishing shots whether you meant them or not. Compose them as such, or frame the
   surface together with a mid prop to tighten it.
 
+## A pause is not in the transcript, and the delivery check depends on it
+
+The format's whole case for a local voice is that "punctuation does the timing" [BREATH],
+so the obvious check on a take is whether the voice actually breaks where the script
+does. It cannot be read off `transcript.json`: **the aligner emits contiguous word
+boundaries and models no silence at all**, so every gap computed from it is zero and a
+take looks like it runs every sentence together. Measure it off the waveform - an
+energy gate at about 32 dB below the speech peak, and the quiet runs between - and key it
+to the TRANSCRIPT's own punctuation rather than to the script's, because the two drift
+apart wherever the aligner merged words (`four hundred` -> `400`) and a word-count walk
+then reads the wrong boundary from there on.
+
+Measured on this piece's take, which is what the check is worth: 57 full stops, median
+pause 0.64s, one under 0.20s; 45 commas, median 0.24s. That is the difference between a
+voice that lands the writing and one that does not, and it is invisible in every other
+number.
+
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
 [NO DETAIL] wants a prop setting type at 28px or less, and [NEVER READ] wants that type
