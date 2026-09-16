@@ -180,6 +180,10 @@ class Set:
             "geom": sum(1 for tag in re.findall(r"<[^>]*>", html) if GEOM.search(tag)),
             "mono": any("mono" in f.lower()
                         for f in re.findall(r"font-family:\s*([^;\"]+)", html)),
+            # Does this prop wear the accent at all - as a house variable or as the
+            # literal colour. The accent means "this one", so who wears it is counted.
+            "accent": ("var(--accent)" in html
+                       or any(r["accent"].lower() in html.lower() for r in self.regions)),
             "tags": sorted({t.lower() for t in re.findall(r"<([a-zA-Z][\w-]*)", html)}),
             "classes": sorted({c for a in re.findall(r'class="([^"]+)"', html)
                                for c in a.split()}),

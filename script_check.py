@@ -35,6 +35,8 @@ R = {
     "gap_words": 25, "name_share": 0.15, "first_sentence": 8, "echo": 6,
     "mirror": 0.35, "on_screen": 0.06, "echoes": 2,
     "triplet_share": 0.15, "triplets_free": 2, "cluster_per": 150, "cluster_max": 3,
+    "breath": 14, "landing_share": 0.25, "front_share": 0.15, "front_words": 18,
+    "questions": 1,
 }
 
 # Words too common to mean anything when the frame and the voice share them.
@@ -77,9 +79,17 @@ PUFFERY = ["serves as", "stands as", "functions as", "is a testament", "a testam
            "plays a crucial role", "plays a vital role", "marks a pivotal", "pivotal moment",
            "reflects broader", "broader trends", "indelible mark", "deeply rooted",
            "in the heart of", "a diverse array", "rich tapestry"]
+# Attribution to nobody is ONE move however it is dressed. These are seeds.
 VAGUE = ["experts argue", "experts say", "experts believe", "industry reports",
          "observers have noted", "observers note", "many believe", "it is widely believed",
-         "studies show", "research suggests", "critics argue"]
+         "studies show", "research suggests", "critics argue", "some would call",
+         "some would say", "some say", "some call it", "many would", "people say",
+         "it is said", "one could argue", "you could say", "it is often"]
+# Dismissing a first answer to introduce a second is one move however it is worded.
+DISMISS = ["undersells", "oversells", "misses the point", "misreads", "the truth of it",
+           "what it really is", "is less about", "does it a disservice", "sells it short"]
+SUBORD = ("because", "although", "though", "while", "whilst", "since", "whereas", "if",
+          "unless", "when", "after", "before", "as")
 SIGNIFY = ("highlighting", "underscoring", "emphasizing", "reflecting", "contributing",
            "fostering", "cultivating", "encompassing", "showcasing", "demonstrating",
            "solidifying", "cementing", "ensuring")
@@ -198,6 +208,12 @@ def main(argv):
         if phrase in plain:
             fault("PUFFERY", f"the script says {phrase!r} - that is significance asserted "
                              f"instead of shown, and usually a plain 'is' that lost its nerve")
+    for phrase in DISMISS:
+        if phrase in plain:
+            fault("NEGATIVE PARALLELISM",
+                  f"the script says {phrase!r} - dismissing a first answer to introduce a "
+                  f"second is negative parallelism wearing different words. Write the second "
+                  f"half and delete the first")
     for phrase in VAGUE:
         if phrase in plain:
             fault("VAGUE SOURCE", f"the script says {phrase!r} with nobody behind it - name who, "
@@ -259,6 +275,45 @@ def main(argv):
             fault("PADDING", f"the script says {' '.join(chunk)!r} more than once - a phrase "
                              f"repeated word for word is filler, not emphasis")
             break
+
+    # --- what a flat synthetic voice can land ---------------------------------
+    # The local engine takes a voice, a speed and a lexicon. There is no style prompt,
+    # so nothing will act for us: every one of these is an expressive control that has
+    # to live in the writing instead.
+    for raw, _ws in lines:
+        for run in re.split(r"[,;:.!?\u2014-]+", raw):
+            n = len(run.split())
+            if n > R["breath"]:
+                fault("BREATH", f"{n} words run without a break in {run.strip()[:52]!r} - a flat "
+                                f"voice cannot phrase what the punctuation does not mark, and "
+                                f"there is no style prompt to rescue it")
+                break
+    ends = [ws[-1] for _r, ws in lines if ws]
+    flat_end = [e for e in ends if e in STOP]
+    if len(flat_end) > R["landing_share"] * len(ends):
+        fault("LANDING", f"{len(flat_end)} of {len(ends)} lines end on a function word "
+                         f"({', '.join(sorted(set(flat_end))[:5])}) - a flat reading drops pitch "
+                         f"at the full stop, so whatever is last gets the landing. Spend it")
+    for raw, ws in lines:
+        if ws and ws[0] in (norm(c) for c in SUBORD) and len(ws) > R["front_words"]:
+            fault("FRONT LOADED", f"a {len(ws)}-word line opens on {raw.split()[0]!r} and buries "
+                                  f"its point behind a subordinate clause: {raw[:52]!r}. Say the "
+                                  f"thing, then qualify it")
+    hard = re.findall(r"\b(?=\w*\d)(?:\w*\d\w*)\b", text)
+    for tok in hard:
+        if len(re.findall(r"\d", tok)) >= 4 or (re.search(r"[A-Za-z]", tok)
+                                                 and re.search(r"\d", tok)):
+            fault("UNSAYABLE", f"the script says {tok!r} - a local voice reads every character "
+                               f"of an identifier or a long number. Put it on the frame and say "
+                               f"it in words")
+            break
+    shouty = [w for w in text.split() if len(w) > 3 and w.isupper()]
+    if shouty:
+        fault("UNSAYABLE", f"the script shouts {shouty[0]!r} - capitals are an instruction to a "
+                           f"performer, and there is no performer. Put the weight in the words")
+    if text.count("?") > R["questions"]:
+        fault("UNSAYABLE", f"{text.count('?')} questions - read flat, a question is a statement. "
+                           f"At most {R['questions']} in a piece")
 
     # --- the bond to the set -------------------------------------------------
     hits = []                       # (word index, prop id) for every naming

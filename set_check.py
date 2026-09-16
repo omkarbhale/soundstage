@@ -56,7 +56,7 @@ R = {                              # every threshold the format states, in one p
     "move_px": 0.015, "move_pct": 50.0, "move_scale": 0.15, "move_rot": 6.0,
     "move_alpha": 0.5, "move_lum": 0.10, "move_hue": 25.0, "move_size_pct": 25.0,
     "prop_ink": 4.5, "channel_share": 0.5, "same_kind_run": 2, "stencil_share": 3,
-    "glyph_share": 0.15, "material_share": 0.30,
+    "glyph_share": 0.15, "material_share": 0.30, "accent_share": 0.25,
     "prop_words": 60, "plate_words": 4, "lum_step": 0.04, "hue_step": 25.0,
     "hue_turn": 70.0,
     "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
@@ -167,6 +167,15 @@ class Doc(HTMLParser):
 
 
 # ------------------------------------------------------------------ camera
+def subject_of(shots):
+    """Each framing's subject, carrying forward through a rack."""
+    out, last = [], []
+    for sh in shots:
+        last = sh["on"] or last
+        out.append(last)
+    return out
+
+
 def layer(depth, shot, planes, frame):
     fw, fh = frame
     s = shot["s"] / depth
@@ -342,12 +351,47 @@ def why(props, shots, legs, planes, frame, targets, by_id, subject):
     print()
 
 
+def freeze(raw, m, which, out):
+    """Write one framing as a still page, so the set can be LOOKED AT.
+
+    A composition only composes under a running timeline, which is why nobody sees a
+    set until it is rendered. Stamping one framing's computed transforms into the CSS
+    gives a page a browser draws on its own:
+
+        python3 set_check.py <index.html> <transcript.json> --freeze 3 frame3.html
+        chrome-headless-shell --headless --window-size=1920,1080 \
+            --screenshot=frame3.png file://$PWD/frame3.html
+    """
+    shots, planes, frame = m["shots"], m["planes"], m["frame"]
+    if not 0 <= which < len(shots):
+        sys.exit(f"--freeze {which}: this set has framings 0 to {len(shots) - 1}")
+    sh = shots[which]
+    css = []
+    for name, depth in [("ground", 1.0)] + sorted(planes.items(), key=lambda kv: -kv[1]):
+        x, y, sc, b = layer(depth, sh, planes, frame)
+        css.append(f"#sp-{name}{{transform:translate({x}px,{y}px) scale({sc});"
+                   f"transform-origin:0 0;filter:blur({b}px)}}")
+    page = raw.replace("</style>", "\n" + "\n".join(css) + "\n</style>", 1)
+    page = page.replace("<body>", f'<body style="margin:0;width:{frame[0]}px;'
+                                  f'height:{frame[1]}px;overflow:hidden">', 1)
+    open(out, "w", encoding="utf8").write(page)
+    print(f"{out}  framing {which}: {sh['kind']} on {sh['on'] or '-'} "
+          f"at {sh['at']}s, scale {sh['s']}")
+
+
 def main(argv):
     show = "--why" in argv
     argv = [a for a in argv if a != "--why"]
+    shot_n, out_page = None, None
+    if "--freeze" in argv:
+        i = argv.index("--freeze")
+        if len(argv) < i + 3:
+            sys.exit("usage: set_check.py <index.html> <transcript.json> --freeze <n> <out.html>")
+        shot_n, out_page = int(argv[i + 1]), argv[i + 2]
+        argv = argv[:i] + argv[i + 3:]
     if len(argv) != 2:
         sys.exit("usage: set_check.py <composition>/index.html <composition>/transcript.json "
-                 "[--why]")
+                 "[--why] [--freeze <n> <out.html>]")
     path, tpath = argv
     raw = open(path, encoding="utf8").read()
     doc = Doc()
@@ -356,6 +400,9 @@ def main(argv):
         sys.exit(f"{path} carries no set manifest - this is not a standing set, or it was "
                  f"not built through components/standing_set.py")
     m = doc.manifest
+    if shot_n is not None:
+        freeze(raw, m, shot_n, out_page)
+        return
     frame = m["frame"]
     world = m["world"]
     planes = m["planes"]
@@ -448,6 +495,14 @@ def main(argv):
                                  f"a measured figure, a diagram) - at least "
                                  f"{int(R['material_share'] * 100)}%, or the set is decoration "
                                  f"with labels on it")
+    # The accent means "this one". Worn by everything, it is a house colour and the
+    # frame becomes a row of identical ornaments - the tell this format names.
+    wearing = [p for p in props if (p.get("markup") or {}).get("accent")]
+    if len(wearing) > R["accent_share"] * n:
+        fault("ACCENT", f"{len(wearing)} of {n} props wear the accent - at most "
+                        f"{int(R['accent_share'] * 100)}%. On everything it points at nothing, "
+                        f"and the frame is an evenly spaced row of identical ornaments. A prop "
+                        f"that is not being named is drawn in ink")
     spec = sum(1 for p in props if p["role"] == "specimen")
     if spec > R["specimen_share"] * n:
         fault("ALL WORDS", f"{spec} of {n} props are specimens - a set made of type is a deck "
@@ -537,6 +592,17 @@ def main(argv):
         if max(ds) / min(ds) < R["depth_ratio"]:
             fault("SHALLOW", f"the populated planes span {max(ds) / min(ds):.2f}x in depth - "
                              f"at least {R['depth_ratio']}x, or the parallax is invisible")
+
+    for sh, on in zip(shots, subject_of(shots)):
+        lit = [p for p in wearing if seen(p, sh, planes, frame) >= R["layer_seen"]]
+        if len(lit) > 1:
+            fault("ACCENT", f"the framing on {sh['cue'] or 'the opening'!r} shows "
+                            f"{len(lit)} accented props ({', '.join(repr(p['id']) for p in lit)})"
+                            f" - one thing at a time is being named, so one thing carries it")
+        elif lit and on and lit[0]["id"] not in on:
+            fault("ACCENT", f"the framing on {sh['cue'] or 'the opening'!r} is aimed at "
+                            f"{', '.join(map(repr, on))} and the accent is on "
+                            f"{lit[0]['id']!r} - it points at whatever is convenient")
 
     # --- C. palette ---------------------------------------------------------
     if len(regions) < R["regions"]:
@@ -729,10 +795,7 @@ def main(argv):
         fault("PLATE", "the timeline animates the plate - the one thing fixed to the frame holds "
                        "still, or it is a slide element in disguise")
 
-    subject, last_on = [], []
-    for sh in shots:
-        last_on = sh["on"] or last_on
-        subject.append(last_on)
+    subject = subject_of(shots)
     for sh, on in zip(shots, subject):
         home = {by_id[pid]["plane"] for pid in on} or {sh["focus"]}
         # Everything standing at another distance, taken together: a wide shot is

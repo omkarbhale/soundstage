@@ -1,6 +1,6 @@
 ---
 name: standing-set
-description: "The soundstage format for a video that is not a deck. ONE space, built before the composition is written, and a camera that travels through it: props exist from the first frame to the last, and meaning comes from where the camera goes and what it finds, never from one rectangle replacing another. Owns the visual LANGUAGE - the world and its regions, depth planes, palette progression, type as objects, how a screen or a block of code or an icon is staged, the five camera moves and the holds between them, and what makes a piece refuse. Built on motion-doctrine, which it does not repeat. Load before composing any soundstage video that is not a slideshow. [set, camera, space, depth, parallax, world, region, palette, travel, push, pull, arc, rack, hold, persistence, no-slides, format]"
+description: "The soundstage format for a video that is not a deck. ONE space, built before the composition is written, and a camera that travels through it: props exist from the first frame to the last, and meaning comes from where the camera goes and what it finds, never from one rectangle replacing another. Owns BOTH halves - the visual language and the NARRATION: how a line is shaped so a local synthetic voice still lands it, what makes a script read as machine-written, and the rule that the frame never restates what is being said. Owns the visual LANGUAGE - the world and its regions, depth planes, palette progression, type as objects, how a screen or a block of code or an icon is staged, the five camera moves and the holds between them, and what makes a piece refuse. Built on motion-doctrine, which it does not repeat. Load before composing any soundstage video that is not a slideshow. [set, camera, space, depth, parallax, world, region, palette, travel, push, pull, arc, rack, hold, persistence, no-slides, format]"
 ---
 
 # Standing Set
@@ -197,9 +197,16 @@ relationships and passes the same refusals.
 | `work`    | `#241019` | `#FFEDF3` | `#FF9A5C` | plum-black, amber |
 | `proof`   | `#0F1B12` | `#ECFAF0` | `#7AB8FF` | green-black, blue |
 
-**Two text colours in the set and no more**: the region's ink, and its accent for the one
-thing the narration is naming at that moment. A third colour is a decision nobody made.
-The accent is spent the way a reserved vector is spent - on meaning, not on variety.
+**Two colours in the set and no more**: the region's ink, and its accent. A third is a
+decision nobody made.
+
+**The accent means "this one", so it is counted.** It goes on **at most a quarter of the
+props**, and in any framing **one** prop wears it - the one the camera is aimed at and the
+narration is naming. Everything else in that frame is drawn in ink: the same colour as the
+type, at its own weight, distinguished by what it is rather than by an ornament. An accent
+on every prop is a house colour, and a house colour applied uniformly is how a compliant
+set renders as an evenly spaced row of identical shapes - the tell this format names at the
+bottom of this document. [ACCENT]
 
 State the progression in one line before building: what the first region is, what the last
 one is, and what the journey between them is. A palette that arrives somewhere is the
@@ -399,6 +406,30 @@ it in the dry run, where the synthetic transcript already exists.
 - **No line opens on a counter** - "first", "second", "next", "finally", "also". A list
   read out loud is the thing this format replaces. [SIGNPOST]
 
+## The voice is local, and the script is the performance
+
+`tts.mjs` on the local engine takes a voice, a speed and a lexicon, and nothing else: there
+is no `instructions` control, and the style prompt is ignored with a note saying so
+(README, "Speaking without an account"). **Nothing will act for you.** Cadence, clause
+length, where the full stops fall, what fits in one breath and which word carries the line
+are the whole of the performance, and every one of them is a decision made in the writing.
+
+- **Punctuation does the timing.** No run of more than 14 words without a comma, full stop,
+  colon or dash. A flat voice cannot phrase what the punctuation does not mark. [BREATH]
+- **The last word carries the line.** A flat reading drops pitch at the full stop, so
+  whatever sits last gets the landing - at most a quarter of lines may end on a function
+  word. Spend the position. [LANDING]
+- **Say the thing, then qualify it.** A line that opens on a subordinate clause and runs
+  past 18 words has buried its own point somewhere a flat delivery will not find it.
+  [FRONT LOADED]
+- **Nothing the voice cannot say.** A run of four or more digits, an identifier with
+  letters and digits in it, a word in capitals: the local voice reads every character of
+  these, and capitals are an instruction to a performer who is not there. Put them on the
+  frame and say them in words. One question in a piece at most - read flat, a question is a
+  statement. [UNSAYABLE]
+- **Pronunciation is not measurable and never will be.** `--lexicon` respells what is
+  spoken without touching the script the guards read. Proper nouns get an ear, not a check.
+
 ## The shapes of writing that has nothing to say
 
 Every pattern below is a substitute for having something to say, and each one is
@@ -418,6 +449,14 @@ is read. Write the way a person who knows this subject talks about it.
   [ADDED SIGNIFICANCE]
 - **Nobody is cited who cannot be named.** "Experts argue", "industry reports", "observers
   have noted". Name who, or drop the claim. [VAGUE SOURCE]
+- **The shape is the tell, not the wording, and no pattern list will catch it.**
+  Dismissing a first answer in order to introduce a second is one move however it is
+  dressed - "not X but Y", "calling it X undersells it", "X misses the point; Y is the truth
+  of it". Attribution to nobody is one move whether it is "experts argue" or "some would
+  call it". A claim with no one behind it and no thing in front of it is the same sentence
+  every time. Write the second half and delete the first. The lists in `script_check.py` are
+  seeds for the forms that recur; the move is what a reader has to recognise in a form the
+  seeds miss. [NEGATIVE PARALLELISM, VAGUE SOURCE]
 - **Watch the density, not the word.** There is a vocabulary that clusters in machine-made
   prose - delve, intricate, interplay, tapestry, pivotal, robust, seamless, leverage, foster,
   align, showcase, and whatever has joined them since. Any one of them is a choice. Five in
@@ -502,12 +541,29 @@ python3 script_check.py <composition>/index.html narration.txt <composition>/tra
    framing; the midpoint of the longest travel; the first framing inside each region; and
    the closing wide. Render from a Linux-native path (README, "Where to render").
 
+   A set only composes under a running timeline, which is why nobody ever sees one until it
+   is rendered. `--freeze` stamps one framing's computed transforms into the page so a
+   browser draws it on its own:
+
+   ```
+   python3 set_check.py <composition>/index.html <composition>/transcript.json \
+       --freeze 3 frame3.html
+   chrome-headless-shell --headless --window-size=1920,1080 \
+       --screenshot=frame3.png file://$PWD/frame3.html
+   ```
+
    At each one, answer out loud: is the near plane doing anything, or is the frame flat in
    practice however the numbers read? Does the accent land on the thing being named, or on
    whatever was convenient? Is the type at this distance actually readable? Does the frame
    have a subject, or three things competing? Is there anything in it that was put there to
-   fill space? A piece nobody has looked at has not been finished, and none of the above is
-   measurable.
+   fill space?
+
+8. **Listen to it.** Read the script aloud, once, end to end, and at every line ask what it
+   told you that the line before it did not. A line that survives because it is grammatical
+   and names a prop is the line to cut. With no style prompt on the voice, this pass is the
+   only place delivery gets checked at all - the guards can measure that a line is sayable
+   and never that it is worth saying. A piece nobody has looked at and listened to has not
+   been finished.
 
 # What makes a piece wrong
 
