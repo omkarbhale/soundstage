@@ -93,7 +93,10 @@ def _shape(markup):
     Two props that hash the same are one prop drawn twice, whatever they are
     labelled and whatever size they are placed at."""
     m = re.sub(r">[^<]*<", "><", markup)
-    m = re.sub(r"font-size:\s*[\d.]+px;?", "", m)
+    # Mirrors FONT_SIZE, and has to: that pattern now READS the attribute
+    # spelling, so if this stripped only the style one, two copies of a drawing
+    # that differ by a font-size attribute would hash apart and walk past [TWINS].
+    m = re.sub(r"""font-size\s*[:=]\s*["']?\s*[\d.]+\s*(?:px)?["']?;?""", "", m)
     return hashlib.sha1(re.sub(r"\s+", " ", m).strip().encode()).hexdigest()[:12]
 
 
