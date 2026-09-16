@@ -108,6 +108,18 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
 - **Speech is OpenAI via `tts.mjs`**, which the engine does not support natively
   ([ADR-0005](docs/adr/0005-openai-for-speech.md)). Route every voice track through it. The
   key lives in `.env` beside it and nowhere else.
+- **A format is a soundstage-owned skill and lives in `/formats/`, never in `.agents/skills/`.**
+  Those 26 are the engine's, version-locked in `skills-lock.json`, and
+  `hyperframes skills update` overwrites anything put there
+  ([ADR-0012](docs/adr/0012-a-format-is-a-soundstage-owned-skill.md), README under
+  "Formats"). Each format is linked into `.claude/skills/<name>`; re-create the link if an
+  update removes it, and check a new format's name is absent from the lock file first.
+  [`formats/standing-set/`](formats/standing-set/SKILL.md) is the not-a-deck format - one
+  space and a camera that travels it - with `components/standing_set.py` for its geometry
+  and `set_check.py` for its guard. That guard is a fifth one to run beside the others,
+  and it refuses by name what renders perfectly and is still a deck: a world that fits the
+  frame, props that fade in as the camera reaches them, a camera that never lands, one
+  palette everywhere, every prop a destination.
 - **Render on a Linux-native path, never on `/mnt/c`** (README, "Where to render"). The engine
   writes its frame sequence inside the project directory, and on the Windows DrvFs mount those
   tens of thousands of small writes starve the workers: measured on one composition, 3.2 fps
