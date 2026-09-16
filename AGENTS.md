@@ -116,10 +116,9 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   update removes it, and check a new format's name is absent from the lock file first.
   [`formats/standing-set/`](formats/standing-set/SKILL.md) is the not-a-deck format - one
   space and a camera that travels it - with `components/standing_set.py` for its geometry
-  and `set_check.py` for its guard. That guard is a fifth one to run beside the others,
-  and it refuses by name what renders perfectly and is still a deck: a world that fits the
-  frame, props that fade in as the camera reaches them, a camera that never lands, one
-  palette everywhere, every prop a destination.
+  and `set_check.py` for its guard, which runs beside the other three and refuses by name
+  what renders perfectly and is still a deck. The format states every threshold it
+  enforces; do not restate them anywhere else.
 - **Render on a Linux-native path, never on `/mnt/c`** (README, "Where to render"). The engine
   writes its frame sequence inside the project directory, and on the Windows DrvFs mount those
   tens of thousands of small writes starve the workers: measured on one composition, 3.2 fps
