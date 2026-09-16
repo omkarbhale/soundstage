@@ -1,0 +1,633 @@
+# Guard 6: prove a standing set is a space the camera travels, and not slides.
+#
+#   python3 set_check.py <composition>/index.html <composition>/transcript.json
+#
+# The format is `formats/standing-set/SKILL.md`; components/standing_set.py is its
+# geometry. This is the part that refuses. Every fault below renders: the frame is
+# composed, the timeline runs, `cue_check.py`, `id_check.py` and `figure_check.py`
+# all pass, and what ships is a deck with a camera move on it.
+#
+#   THE SET FITS THE FRAME. A world the camera can see all of at once is a slide,
+#   whatever it is called, and travelling across it is a pan over a poster.
+#
+#   THE PROPS ARRIVE. A prop that fades in when the camera reaches it is a bullet.
+#   In a standing set everything is already there and the camera finds it; an
+#   arrival is rationed and has to be caused by something already on screen.
+#
+#   THE CAMERA NEVER LANDS. Continuous motion with no rest reads as a screensaver.
+#   Meaning is made by arriving and holding, and a hold has to carry something.
+#
+#   ONE ACCENT ON GREY. A single palette repeated across the whole world is the
+#   deck reflex wearing a camera. Regions differ, and the camera crosses between
+#   them.
+#
+#   EVERY STOP IS A DESTINATION. A set where every prop is a framing target is a
+#   deck with the slides laid side by side. Some of the space is passed through.
+#
+# The numbers in the timeline are re-derived here from the manifest the component
+# stamped into the document, the way figure_check.py re-derives a highlight from its
+# measurement: a camera position typed by hand is refused (ADR-0010's rule in the
+# third medium).
+#
+# Run it after building and before rendering, beside cue_check.py, id_check.py and
+# figure_check.py.
+import json
+import re
+import sys
+import unicodedata
+from html import unescape
+from html.parser import HTMLParser
+
+# Matches components/standing_set.py. A change to either is a change to both.
+DOF_K, DOF_CAP_S, DOF_MAX = 7.0, 1.7, 15.0
+
+R = {                              # every threshold the format states, in one place
+    "world_long": 3.0, "world_short": 1.5,
+    "props": 12, "roles": 4, "specimen_share": 0.40, "target_share": 0.60,
+    "prop_seen": 0.04, "twin_size": 0.05,
+    "planes": 3, "plane_share": 0.55, "depth_ratio": 2.5,
+    "regions": 3, "region_props": 2, "contrast": 7.0,
+    "hue_gap": 25.0, "lum_gap": 0.12, "accent_hue_gap": 40.0, "grey_sat": 0.06,
+    "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
+    "small_apparent": 30.0, "families": (2, 3),
+    "kinds": 4, "kind_share": 0.40, "dur": (0.6, 3.5),
+    "push": 1.25, "pull": 0.80, "close_move": 1.0,
+    "travel_move": 0.9, "travel_scale": 0.15,
+    "arc_move": (0.15, 0.60), "arc_scale": 0.20, "arc_shear": 0.25, "scale_range": 4.0,
+    "rest_share": 0.40, "long_holds": 3, "long_hold": 2.0, "longest_hold": 3.5,
+    "run_gap": 0.8, "run": 3,
+    "revisits": 2, "revisit_scale": 1.35, "revisit_move": 0.5,
+    "open_share": 0.40, "close_share": 0.66, "close_changes": 3,
+    "changes": 3, "event_share": 0.25,
+}
+
+FAULTS = []
+
+
+def fault(rule, msg):
+    FAULTS.append(f"  {rule:<14} {msg}")
+
+
+# ------------------------------------------------------------------- colour
+def rgb(c):
+    c = c.strip().lstrip("#")
+    if len(c) == 3:
+        c = "".join(ch * 2 for ch in c)
+    if len(c) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", c):
+        return None
+    return tuple(int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def lum(c):
+    def lin(v):
+        return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (lin(v) for v in c)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a, b):
+    la, lb = lum(a), lum(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def hue_sat(c):
+    mx, mn = max(c), min(c)
+    d = mx - mn
+    if d == 0:
+        return 0.0, 0.0
+    r, g, b = c
+    h = (60 * (((g - b) / d) % 6) if mx == r else
+         60 * ((b - r) / d + 2) if mx == g else
+         60 * ((r - g) / d + 4))
+    return h % 360, d / mx
+
+
+def hue_gap(a, b):
+    d = abs(a - b) % 360
+    return min(d, 360 - d)
+
+
+# --------------------------------------------------------------- the markup
+class Doc(HTMLParser):
+    """Enough of a tree to answer two questions: what is inside the set view but
+    outside every plane, and how many clips carry a picture."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.stack = []
+        self.loose = []
+        self.clips = []
+        self.manifest = None
+        self._grab = False
+        self.sizes = []
+        self.families = []
+        self.plate = 0
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        cls = (a.get("class") or "").split()
+        eid = a.get("id") or ""
+        style = a.get("style") or ""
+        self.sizes += [float(v) for v in re.findall(r"font-size:\s*([\d.]+)px", style)]
+        self.families += re.findall(r"font-family:\s*([^;\"]+)", style)
+        if "clip" in cls:
+            self.clips.append((tag, eid))
+        if "set-plate" in cls:
+            self.plate += 1
+        inview = any("set-view" in c for _t, c, _i in self.stack)
+        inplane = any("set-plane" in c for _t, c, _i in self.stack)
+        if inview and not inplane and "set-plane" not in cls:
+            self.loose.append(eid or tag)
+        if tag == "script" and a.get("type") == "application/json" and eid == "set-manifest":
+            self._grab = True
+        if tag not in ("br", "img", "input", "hr", "meta", "link", "source", "use", "path"):
+            self.stack.append((tag, cls, eid))
+
+    def handle_endtag(self, tag):
+        self._grab = False
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]
+                break
+
+    def handle_data(self, data):
+        if self._grab:
+            self.manifest = json.loads(unescape(data))
+
+
+# ------------------------------------------------------------------ camera
+def layer(depth, shot, planes, frame):
+    fw, fh = frame
+    s = shot["s"] / depth
+    f = planes[shot["focus"]]
+    blur = min(DOF_MAX, DOF_K * abs(depth - f) / f * min(DOF_CAP_S, shot["s"]))
+    return (round(fw / 2 - shot["cx"] * s, 3), round(fh / 2 - shot["cy"] * s, 3),
+            round(s, 5), round(blur, 2))
+
+
+def box_of(prop, shot, planes, frame):
+    """A prop's projected box under one framing."""
+    fw, fh = frame
+    s = shot["s"] / planes[prop["plane"]]
+    return ((prop["at"][0] - shot["cx"]) * s + fw / 2,
+            (prop["at"][1] - shot["cy"]) * s + fh / 2,
+            prop["size"][0] * s, prop["size"][1] * s)
+
+
+def seen(prop, shot, planes, frame):
+    """How much of the frame a prop covers under one framing, as a fraction."""
+    fw, fh = frame
+    x, y, w, h = box_of(prop, shot, planes, frame)
+    ix = max(0.0, min(fw, x + w) - max(0.0, x))
+    iy = max(0.0, min(fh, y + h) - max(0.0, y))
+    return ix * iy / (fw * fh)
+
+
+# ------------------------------------------------------------------- cueing
+def norm(s):
+    w = re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", s).lower())
+    return w[:-1] if len(w) > 3 and w.endswith("s") else w
+
+
+def cue_matches(tok, phrase):
+    want = [norm(t) for t in phrase.split() if norm(t)]
+    if not want:
+        return []
+    return [i for i in range(len(tok) - len(want) + 1) if tok[i:i + len(want)] == want]
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.exit("usage: set_check.py <composition>/index.html <composition>/transcript.json")
+    path, tpath = argv
+    raw = open(path, encoding="utf8").read()
+    doc = Doc()
+    doc.feed(raw)
+    if doc.manifest is None:
+        sys.exit(f"{path} carries no set manifest - this is not a standing set, or it was "
+                 f"not built through components/standing_set.py")
+    m = doc.manifest
+    frame = m["frame"]
+    world = m["world"]
+    planes = m["planes"]
+    props = m["props"]
+    shots = m["shots"]
+    regions = m["regions"]
+    fw, fh = frame
+    n = len(props)
+    by_id = {p["id"]: p for p in props}
+
+    # --- A. the composition is a set, not a stack ---------------------------
+    picture = [c for c in doc.clips if c[0] not in ("audio", "video")]
+    if len(picture) != 1:
+        fault("ONE CLIP", f"{len(picture)} picture clips ({', '.join(i or t for t, i in picture)}) "
+                          f"- a standing set is one clip for the whole module, because a second "
+                          f"clip is a second slide")
+    for loose in doc.loose:
+        fault("LOOSE", f"{loose!r} is inside the view but on no plane - everything the "
+                       f"viewer sees stands in the world, except the one plate")
+    if doc.plate > 1:
+        fault("PLATES", f"{doc.plate} plates - a set fixes one thing to the frame")
+
+    declared = {e["prop"] for e in m["events"]}
+    ENTER = re.compile(r'tl\.(?:fromTo|from|set)\(\s*"#pr-([\w-]+)[^"]*"\s*,\s*\{([^}]*)\}')
+    for pid, obj in ENTER.findall(raw):
+        if re.search(r"(?:autoAlpha|opacity)\s*:\s*0(?:\.0+)?\b", obj) and pid not in declared:
+            fault("ARRIVES", f"prop {pid!r} starts invisible and is not a declared event - "
+                             f"a prop that appears when the camera reaches it is a bullet")
+    if len(m["events"]) > R["event_share"] * n:
+        fault("ARRIVALS", f"{len(m['events'])} of {n} props arrive - at most "
+                          f"{int(R['event_share'] * 100)}% of a set may be built in front of "
+                          f"the viewer")
+
+    # --- B. the space -------------------------------------------------------
+    long_r = max(world[0] / fw, world[1] / fh)
+    short_r = min(world[0] / fw, world[1] / fh)
+    if long_r < R["world_long"] or short_r < R["world_short"]:
+        fault("SMALL WORLD", f"the world is {long_r:.2f} frames on its long axis and "
+                             f"{short_r:.2f} on its short - a standing set is at least "
+                             f"{R['world_long']}x{R['world_short']}, or the camera is panning "
+                             f"over a poster")
+    if n < R["props"]:
+        fault("THIN SET", f"{n} props - a set carries at least {R['props']}, or the camera "
+                          f"travels through nothing")
+    roles = {p["role"] for p in props}
+    if len(roles) < R["roles"]:
+        fault("ONE NOTE", f"{len(roles)} role(s) ({', '.join(sorted(roles))}) - a set holds at "
+                          f"least {R['roles']} different things")
+    spec = sum(1 for p in props if p["role"] == "specimen")
+    if spec > R["specimen_share"] * n:
+        fault("ALL WORDS", f"{spec} of {n} props are specimens - a set made of type is a deck "
+                           f"laid on its side")
+    targets = {pid for s in shots for pid in s["on"]}
+    if len(targets) > R["target_share"] * n:
+        fault("ALL STOPS", f"{len(targets)} of {n} props are framing targets - at most "
+                           f"{int(R['target_share'] * 100)}% may be destinations, or the set is "
+                           f"slides laid side by side")
+    for p in props:
+        best = max(seen(p, s, planes, frame) for s in shots)
+        if best < R["prop_seen"]:
+            fault("UNSEEN", f"prop {p['id']!r} never covers {R['prop_seen'] * 100:.0f}% of the "
+                            f"frame (best {best * 100:.1f}%) - it is in the file and not in the "
+                            f"film")
+    for i in range(n):
+        for j in range(i + 1, n):
+            a, b = props[i], props[j]
+            if a["role"] != b["role"]:
+                continue
+            if all(abs(a["size"][k] - b["size"][k]) <= R["twin_size"] * b["size"][k]
+                   for k in (0, 1)):
+                fault("TWINS", f"props {a['id']!r} and {b['id']!r} are the same role at the same "
+                               f"size - repeated identical objects belong inside one prop, not "
+                               f"beside each other like cards on a slide")
+    used = {p["plane"] for p in props}
+    if len(used) < R["planes"]:
+        fault("FLAT", f"{len(used)} plane(s) carry props - a set has at least {R['planes']}, or "
+                      f"it has no depth to travel through")
+    for pl in used:
+        c = sum(1 for p in props if p["plane"] == pl)
+        if c > R["plane_share"] * n:
+            fault("FLAT", f"{c} of {n} props are on plane {pl!r} - no plane carries more than "
+                          f"{int(R['plane_share'] * 100)}%")
+    if used:
+        ds = [planes[p] for p in used]
+        if max(ds) / min(ds) < R["depth_ratio"]:
+            fault("SHALLOW", f"the populated planes span {max(ds) / min(ds):.2f}x in depth - "
+                             f"at least {R['depth_ratio']}x, or the parallax is invisible")
+
+    # --- C. palette ---------------------------------------------------------
+    if len(regions) < R["regions"]:
+        fault("ONE PALETTE", f"{len(regions)} region(s) - a set changes palette as the camera "
+                             f"travels, and that needs at least {R['regions']} places")
+    greys = 0
+    for r in regions:
+        g, ink, acc = rgb(r["ground"]), rgb(r["ink"]), rgb(r["accent"])
+        if g is None or ink is None or acc is None:
+            fault("COLOUR", f"region {r['name']!r} has a colour this cannot read - write "
+                            f"grounds, inks and accents as hex")
+            continue
+        c = contrast(ink, g)
+        if c < R["contrast"]:
+            fault("UNREADABLE", f"region {r['name']!r} sets ink on ground at {c:.1f}:1 - "
+                                f"{R['contrast']}:1 or better, because type in this format is "
+                                f"read at depth and through blur")
+        if hue_sat(g)[1] < R["grey_sat"]:
+            greys += 1
+        held = sum(1 for p in props if p["region"] == r["name"])
+        if held < R["region_props"]:
+            fault("EMPTY REGION", f"region {r['name']!r} holds {held} prop(s) - a region with "
+                                  f"nothing in it is paint, not a place")
+    if greys > 1:
+        fault("GREY", f"{greys} regions have a near-neutral ground - one may be neutral, the "
+                      f"rest are colours")
+
+    def adjacent(a, b):
+        ax, ay, aw, ah = a["box"]
+        bx, by, bw, bh = b["box"]
+        touch_x = abs(ax + aw - bx) < 1 or abs(bx + bw - ax) < 1
+        touch_y = abs(ay + ah - by) < 1 or abs(by + bh - ay) < 1
+        over_x = ax < bx + bw and bx < ax + aw
+        over_y = ay < by + bh and by < ay + ah
+        return (touch_x and over_y) or (touch_y and over_x)
+
+    for i, a in enumerate(regions):
+        for b in regions[i + 1:]:
+            if not adjacent(a, b):
+                continue
+            ga, gb = rgb(a["ground"]), rgb(b["ground"])
+            aa, ab = rgb(a["accent"]), rgb(b["accent"])
+            if not all((ga, gb, aa, ab)):
+                continue
+            dh, dl = hue_gap(hue_sat(ga)[0], hue_sat(gb)[0]), abs(lum(ga) - lum(gb))
+            if dh < R["hue_gap"] and dl < R["lum_gap"]:
+                fault("SAME ROOM", f"regions {a['name']!r} and {b['name']!r} meet and differ by "
+                                   f"{dh:.0f}deg of hue and {dl:.3f} of luminance - crossing the "
+                                   f"boundary shows nothing")
+            da = hue_gap(hue_sat(aa)[0], hue_sat(ab)[0])
+            if da < R["accent_hue_gap"]:
+                fault("SAME ACCENT", f"regions {a['name']!r} and {b['name']!r} meet and their "
+                                     f"accents are {da:.0f}deg apart - each place has its own")
+
+    bounds_x = sorted({r["box"][0] for r in regions} | {r["box"][0] + r["box"][2]
+                                                        for r in regions})[1:-1]
+    bounds_y = sorted({r["box"][1] for r in regions} | {r["box"][1] + r["box"][3]
+                                                        for r in regions})[1:-1]
+    crossed = False
+    for a, b in zip(shots, shots[1:]):
+        if any(min(a["cx"], b["cx"]) < v < max(a["cx"], b["cx"]) for v in bounds_x):
+            crossed = True
+        if any(min(a["cy"], b["cy"]) < v < max(a["cy"], b["cy"]) for v in bounds_y):
+            crossed = True
+    if regions and not crossed:
+        fault("NO CROSSING", "no move carries the camera over a region boundary - the palette "
+                             "changes because the camera goes somewhere, not because a slide "
+                             "turned")
+
+    # --- D. type ------------------------------------------------------------
+    sizes = sorted({round(float(v), 1) for v in re.findall(r"font-size:\s*([\d.]+)px", raw)})
+    if len(sizes) < R["sizes"]:
+        fault("ONE SIZE", f"{len(sizes)} type size(s) in the document - a set needs at least "
+                          f"{R['sizes']}, because a headline and a body size is a slide")
+    elif max(sizes) / min(sizes) < R["size_ratio"]:
+        fault("NO SCALE", f"the type runs {min(sizes):.0f}px to {max(sizes):.0f}px "
+                          f"({max(sizes) / min(sizes):.1f}x) - at least {R['size_ratio']}x, or "
+                          f"nothing is worth travelling to read")
+    if re.search(r"<ul\b|<ol\b|&bull;|•|‣|▪", raw, re.I):
+        fault("BULLETS", "the set contains a list - a bulleted list is the thing this format "
+                         "exists instead of")
+    fams = {f.strip().strip("'\"").split(",")[0].strip().strip("'\"").lower()
+            for f in doc.families + re.findall(r"font-family:\s*([^;}\"]+)", raw)}
+    fams = {f for f in fams if f and f not in
+            ("inherit", "initial", "unset", "sans-serif", "serif", "monospace", "system-ui")}
+    lo, hi = R["families"]
+    if not (lo <= len(fams) <= hi):
+        fault("FAMILIES", f"{len(fams)} type families ({', '.join(sorted(fams)) or 'none'}) - a "
+                          f"set uses {lo} to {hi}, so the voice changes where the material does")
+    if not any(p["px"] and max(p["px"]) >= R["big_px"] for p in props):
+        fault("NO SCALE", f"no prop sets type at {R['big_px']:.0f}px or more - a set holds type "
+                          f"as an object, at a size the camera has to back off to read")
+    small = [p for p in props if p["px"] and min(p["px"]) <= R["small_px"]]
+    if not small:
+        fault("NO DETAIL", f"no prop sets type at {R['small_px']:.0f}px or less - a set holds "
+                           f"something the wide shot cannot read, or the camera never earns a "
+                           f"push")
+    else:
+        ok = False
+        for p in small:
+            for s in shots:
+                if p["id"] in s["on"] and min(p["px"]) * s["s"] / planes[p["plane"]] >= \
+                        R["small_apparent"]:
+                    ok = True
+        if not ok:
+            fault("NEVER READ", f"the smallest type in the set is never framed close enough to "
+                                f"read ({R['small_apparent']:.0f}px on the frame) - detail "
+                                f"nobody can reach is not detail")
+
+    words = json.load(open(tpath, encoding="utf8"))
+    tok = [norm(w["text"]) for w in words]
+    spoken = words[-1]["end"] if words else m["end"]
+
+    # --- E. the camera ------------------------------------------------------
+    moves = shots[1:]
+    kinds = [s["kind"] for s in moves]
+    if len(set(kinds)) < R["kinds"]:
+        fault("ONE MOVE", f"{len(set(kinds))} move kind(s) ({', '.join(sorted(set(kinds)))}) - "
+                          f"a camera that only does one thing is a transition")
+    for k in set(kinds):
+        if kinds.count(k) > R["kind_share"] * len(moves):
+            fault("ONE MOVE", f"{kinds.count(k)} of {len(moves)} moves are {k!r} - no kind is "
+                              f"more than {int(R['kind_share'] * 100)}%")
+    dlo, dhi = R["dur"]
+    for s in moves:
+        if not (dlo <= s["dur"] <= dhi):
+            fault("PACE", f"the {s['kind']} on {s['cue']!r} runs {s['dur']}s - a move is "
+                          f"{dlo}s to {dhi}s; split a long travel into legs with a beat between")
+    for a, b in zip(shots, moves):
+        ratio = b["s"] / a["s"]
+        # How far the camera went, in frames, at the scale it arrived at - the larger
+        # axis, because a move that crosses the frame vertically crossed the frame.
+        move = max(abs(b["cx"] - a["cx"]) * b["s"] / fw,
+                   abs(b["cy"] - a["cy"]) * b["s"] / fh)
+        if b["kind"] in ("push", "pull"):
+            want = R["push"] if b["kind"] == "push" else R["pull"]
+            if (ratio < want) if b["kind"] == "push" else (ratio > want):
+                fault(f"NOT A {b['kind'].upper()}",
+                      f"the {b['kind']} on {b['cue']!r} changes scale {ratio:.2f}x - a push is "
+                      f"at least {R['push']}x closer and a pull at most {R['pull']}x")
+            if move > R["close_move"]:
+                fault(f"NOT A {b['kind'].upper()}",
+                      f"the {b['kind']} on {b['cue']!r} also crosses {move:.2f} frames - past "
+                      f"{R['close_move']} it has gone somewhere else, which is a travel")
+        if b["kind"] == "travel":
+            if move < R["travel_move"]:
+                fault("NOT A TRAVEL", f"the travel on {b['cue']!r} moves {move:.2f} frames - a "
+                                      f"travel crosses at least {R['travel_move']}; anything "
+                                      f"shorter is a nudge")
+            if abs(ratio - 1) > R["travel_scale"]:
+                fault("NOT A TRAVEL", f"the travel on {b['cue']!r} also changes scale "
+                                      f"{ratio:.2f}x - travel goes somewhere, push and pull "
+                                      f"change how close you are, and one move does one of them")
+        if b["kind"] == "arc":
+            lo_m, hi_m = R["arc_move"]
+            here = {p["plane"] for p in props if seen(p, b, planes, frame) > 0.01}
+            depths = sorted(planes[pl] for pl in here)
+            shear = (max(abs(b["cx"] - a["cx"]) / fw, abs(b["cy"] - a["cy"]) / fh) * b["s"] *
+                     (1 / depths[0] - 1 / depths[-1])) if len(depths) > 1 else 0.0
+            if not (lo_m <= move <= hi_m):
+                fault("NOT AN ARC", f"the arc on {b['cue']!r} crosses {move:.2f} frames - an arc "
+                                    f"is a close move of {lo_m} to {hi_m}; further than that it "
+                                    f"is a travel and nothing turns")
+            if abs(ratio - 1) > R["arc_scale"]:
+                fault("NOT AN ARC", f"the arc on {b['cue']!r} changes scale {ratio:.2f}x - an "
+                                    f"arc goes around something, it does not approach it")
+            if shear < R["arc_shear"]:
+                fault("NOT AN ARC", f"the arc on {b['cue']!r} shears its planes {shear:.2f} "
+                                    f"frames - at least {R['arc_shear']}, and that needs near "
+                                    f"AND far in the same frame; an arc is parallax or it is a "
+                                    f"nudge")
+        if b["kind"] == "rack":
+            if abs(b["cx"] - a["cx"]) > 1 or abs(b["cy"] - a["cy"]) > 1 or \
+                    abs(ratio - 1) > 0.02:
+                fault("NOT A RACK", f"the rack on {b['cue']!r} also moves the camera - a rack "
+                                    f"holds still and moves the focus")
+            if b["focus"] == a["focus"]:
+                fault("NOT A RACK", f"the rack on {b['cue']!r} focuses where it already was")
+    ss = [s["s"] for s in shots]
+    if max(ss) / min(ss) < R["scale_range"]:
+        fault("ONE DISTANCE", f"the camera works over {max(ss) / min(ss):.2f}x of scale - at "
+                              f"least {R['scale_range']}x, or it never goes anywhere near or far")
+
+    # rest
+    gaps = []
+    for a, b in zip(shots, moves):
+        gaps.append((a["at"] + (a["dur"] or 0.0), b["at"] - (a["at"] + (a["dur"] or 0.0))))
+    tail = m["end"] - (shots[-1]["at"] + (shots[-1]["dur"] or 0.0))
+    gaps.append((shots[-1]["at"] + (shots[-1]["dur"] or 0.0), tail))
+    rest = sum(max(0.0, g) for _t, g in gaps)
+    if rest < R["rest_share"] * m["end"]:
+        fault("NO REST", f"the camera is still for {rest:.1f}s of {m['end']:.1f}s "
+                         f"({rest / m['end'] * 100:.0f}%) - at least "
+                         f"{int(R['rest_share'] * 100)}%, because meaning is made where it lands")
+    longs = [(t0, g) for t0, g in gaps if g >= R["long_hold"]]
+    if len(longs) < R["long_holds"]:
+        fault("NO REST", f"{len(longs)} hold(s) of {R['long_hold']}s or more - at least "
+                         f"{R['long_holds']}")
+    if gaps and max(g for _t, g in gaps) < R["longest_hold"]:
+        fault("NO REST", f"the longest hold is {max(g for _t, g in gaps):.1f}s - one hold of at "
+                         f"least {R['longest_hold']}s, or nothing in the film is allowed to land")
+    acts = [e["at"] for e in m["events"]] + [c["at"] for c in m["changes"]]
+    for t0, g in longs:
+        if min(t0 + g, spoken) - t0 < R["long_hold"]:
+            continue               # after the last word the film is allowed to be still
+        if not any(t0 - 0.2 <= a <= t0 + g + 0.2 for a in acts):
+            fault("DEAD HOLD", f"the hold at {t0:.1f}s runs {g:.1f}s with nothing happening in "
+                               f"it - a hold carries an event or a change, or the frame is "
+                               f"waiting")
+    run = 1
+    for a, b in zip(moves, moves[1:]):
+        gap = b["at"] - (a["at"] + a["dur"])
+        run = run + 1 if gap < R["run_gap"] else 1
+        if run >= R["run"]:
+            fault("NO LANDING", f"the moves around {b['cue']!r} run {run} deep without landing "
+                                f"- the camera arrives somewhere every second move")
+
+    # revisits
+    revisits = 0
+    for pid in sorted(targets):
+        at = [i for i, s in enumerate(shots) if pid in s["on"]]
+        for i, j in zip(at, at[1:]):
+            if j - i < 2:
+                continue
+            a, b = shots[i], shots[j]
+            if max(b["s"] / a["s"], a["s"] / b["s"]) >= R["revisit_scale"] or \
+                    max(abs(b["cx"] - a["cx"]) * b["s"] / fw,
+                        abs(b["cy"] - a["cy"]) * b["s"] / fh) >= R["revisit_move"]:
+                revisits += 1
+                break
+    if revisits < R["revisits"]:
+        fault("NO RETURN", f"{revisits} prop(s) are framed again later from somewhere else - at "
+                           f"least {R['revisits']}, or the set is a corridor and nothing in it "
+                           f"persists")
+
+    # the ends
+    first, last = shots[0], shots[-1]
+    o_seen = sum(1 for p in props if seen(p, first, planes, frame) > 0)
+    c_seen = sum(1 for p in props if seen(p, last, planes, frame) > 0)
+    if o_seen > R["open_share"] * n:
+        fault("OPENS WIDE", f"the opening framing shows {o_seen} of {n} props - it shows at most "
+                            f"{int(R['open_share'] * 100)}%, because the set is discovered, not "
+                            f"presented")
+    if c_seen < R["close_share"] * n:
+        fault("NO PAYOFF", f"the closing framing shows {c_seen} of {n} props - it shows at least "
+                           f"{int(R['close_share'] * 100)}%, because the last thing the viewer "
+                           f"gets is the whole space they have been through")
+    changed = {c["prop"] for c in m["changes"]}
+    in_close = sum(1 for p in props if p["id"] in changed and seen(p, last, planes, frame) > 0)
+    if in_close < R["close_changes"]:
+        fault("NO PAYOFF", f"the closing framing shows {in_close} changed prop(s) - at least "
+                           f"{R['close_changes']}, or the set ends exactly as it started")
+    if abs(first["cx"] - last["cx"]) * last["s"] / fw < 0.3 and \
+            abs(first["s"] / last["s"] - 1) < 0.05:
+        fault("NO PAYOFF", "the closing framing is the opening framing - the film ends where it "
+                           "began and nothing was learned by going")
+
+    # --- F. change and cue --------------------------------------------------
+    if len(m["changes"]) < R["changes"]:
+        fault("STATIC", f"{len(m['changes'])} declared change(s) - at least {R['changes']}: the "
+                        f"set is in a different state at the end than at the start")
+    stmts = re.findall(r'tl\.\w+\((.*?)\);', raw, re.S)
+    touched = set()
+    for st in stmts:
+        for pid in re.findall(r'"#pr-([\w-]+)', st):
+            touched.add(pid)
+    for c in m["changes"]:
+        if c["prop"] not in touched:
+            fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is declared and nothing in "
+                            f"the timeline touches that prop")
+    live = {}
+    for e in m["events"]:
+        s = [sh for sh in shots if sh["at"] <= e["at"] + 1e-6][-1]
+        if seen(by_id[e["cause"]], s, planes, frame) <= 0.005:
+            fault("UNCAUSED", f"the event on {e['cue']!r} is caused by {e['cause']!r}, which is "
+                              f"not on screen when it fires - an arrival is caused by something "
+                              f"the viewer can see")
+
+    cues = ([(s["cue"], f"the {s['kind']} move") for s in moves] +
+            [(e["cue"], "an event") for e in m["events"]] +
+            [(c["cue"], "a change") for c in m["changes"]])
+    for cue, what in cues:
+        if isinstance(cue, (list, tuple)):
+            continue                   # an occurrence was named: the author has said which
+        at = cue_matches(tok, cue)
+        if not at:
+            fault("NOT SPOKEN", f"{what} is cued on {cue!r}, which is not in the narration")
+        elif len(at) > 1:
+            fault("AMBIGUOUS", f"{what} is cued on {cue!r}, said {len(at)} times at "
+                               f"{[round(words[i]['start'], 2) for i in at]} - name the "
+                               f"occurrence")
+
+    # --- G. the numbers are computed ---------------------------------------
+    TWEEN = re.compile(r'tl\.fromTo\(\s*"#sp-([\w-]+)"\s*,\s*\{x:(-?[\d.]+),y:(-?[\d.]+),'
+                       r'scale:([\d.]+),filter:"blur\(([\d.]+)px\)"\}\s*,\s*\{x:(-?[\d.]+),'
+                       r'y:(-?[\d.]+),scale:([\d.]+),filter:"blur\(([\d.]+)px\)",'
+                       r'duration:([\d.]+),ease:"[^"]+"\}\s*,\s*([\d.]+)\)')
+    got = TWEEN.findall(raw)
+    order = [("ground", 1.0)] + sorted(planes.items(), key=lambda kv: -kv[1])
+    want = []
+    for a, b in zip(shots, moves):
+        for name, depth in order:
+            want.append((name, layer(depth, a, planes, frame),
+                         layer(depth, b, planes, frame), round(b["dur"], 3),
+                         round(b["at"], 3)))
+    if len(got) != len(want):
+        fault("HAND-DRIVEN", f"{len(got)} camera tween(s) in the timeline against {len(want)} "
+                             f"the set describes - the camera is written by "
+                             f"components/standing_set.py and nowhere else")
+    else:
+        # Both sides compute from the manifest's own rounded framings, so the only
+        # slack needed is the last digit of a blur that landed on a tie.
+        TOL = (0, 0.005, 0.005, 0.005, 0.011, 0.005, 0.005, 0.005, 0.011, 0.005, 0.005)
+        for g, w in zip(got, want):
+            mine = (w[0], w[1][0], w[1][1], w[1][2], w[1][3],
+                    w[2][0], w[2][1], w[2][2], w[2][3], w[3], w[4])
+            theirs = (g[0],) + tuple(float(v) for v in g[1:])
+            if any(a != b if isinstance(a, str) else abs(a - b) > tol
+                   for a, b, tol in zip(mine, theirs, TOL)):
+                fault("HAND-DRIVEN", f"the camera tween on plane {g[0]!r} at {g[10]}s is not the "
+                                     f"framing the set describes - a camera position typed by "
+                                     f"hand rings the wrong control (ADR-0010)")
+                break
+
+    print(f"{path}")
+    print(f"  {n} props on {len(used)} planes, {len(regions)} regions, {len(moves)} moves, "
+          f"{rest / m['end'] * 100:.0f}% held")
+    for f in FAULTS:
+        print(f)
+    if FAULTS:
+        sys.exit(f"{len(FAULTS)} fault(s) - this would render as a deck with a camera on it")
+    print("  one space, travelled: the set is bigger than the frame, the props persist, "
+          "the camera lands")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
