@@ -86,7 +86,9 @@ sentence is the reason.
 
 **Lines vary the way speech varies.** Some land in four words. Some run long enough to
 carry a whole thought. A script of even fifteen-word declaratives is bullet prose with
-the bullets taken out, and it sounds like one whatever is on screen.
+the bullets taken out, and it sounds like one whatever is on screen. Say a line aloud while
+drafting it to hear whether it is speech at all - but never mistake that for the check.
+Your reading performs it; the take will not.
 
 **It is spoken, not read.** A clause that survives on a page can be unsayable out loud,
 and a listener catches a pattern far faster than a reader does. Say every line aloud once.
@@ -564,12 +566,20 @@ python3 script_check.py <composition>/index.html narration.txt <composition>/tra
    have a subject, or three things competing? Is there anything in it that was put there to
    fill space?
 
-8. **Listen to it.** Read the script aloud, once, end to end, and at every line ask what it
-   told you that the line before it did not. A line that survives because it is grammatical
-   and names a prop is the line to cut. With no style prompt on the voice, this pass is the
-   only place delivery gets checked at all - the guards can measure that a line is sayable
-   and never that it is worth saying. A piece nobody has looked at and listened to has not
-   been finished.
+8. **Listen to the take.** Generate it once and play it end to end (README, "Making
+   narration", and "Speaking without an account" for the local engine). The take exists
+   before `transcript.json` does, so this costs nothing that was not already being spent.
+
+   **Do not read it yourself.** Your own mouth supplies exactly the stress, pacing and
+   emphasis the voice will not, so a line that survives your reading of it is not evidence
+   of anything - it is the one person in the room who knows where the emphasis goes,
+   putting it there. Listen for the line that runs out of breath, the one whose point
+   arrives after the listener has stopped waiting for it, and the one that lands on a word
+   carrying nothing. Then ask, of every line, what it told you that the line before it did
+   not. A line that survives because it is grammatical and names a prop is the line to cut.
+
+   This is the only place delivery is checked at all, and with nothing acting for the script
+   it is the only place it can be. A piece nobody has looked at and heard is not finished.
 
 # What makes a piece wrong
 

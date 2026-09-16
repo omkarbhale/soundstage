@@ -601,8 +601,11 @@ def main(argv):
                             f" - one thing at a time is being named, so one thing carries it")
         elif lit and on and lit[0]["id"] not in on:
             fault("ACCENT", f"the framing on {sh['cue'] or 'the opening'!r} is aimed at "
-                            f"{', '.join(map(repr, on))} and the accent is on "
-                            f"{lit[0]['id']!r} - it points at whatever is convenient")
+                            f"{', '.join(map(repr, on))} and shows {lit[0]['id']!r} wearing the "
+                            f"accent without being aimed at. Either name it in this framing, or "
+                            f"carry the accent on the prop this framing is about - a wide shot "
+                            f"that merely contains an accented prop is the usual cause, and the "
+                            f"accent is often already on the right thing")
 
     # --- C. palette ---------------------------------------------------------
     if len(regions) < R["regions"]:
