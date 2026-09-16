@@ -527,7 +527,14 @@ cues; a faster one cannot, and no setting downstream can fix it without going ou
 - `min_break_chars` - the shortest cue worth breaking a clause for. A boundary two words
   in leaves a caption on screen long enough to read with nothing on it to read.
 - `fast_cps` / `hard_cps` - reading rate is partly the narrator's, so the first is
-  reported and only the second refuses.
+  reported and only the second refuses. **Set the ceiling above what the narration itself
+  does, not at what a style guide says.** Measured on one take: 16.6 characters a second
+  on average and a peak near 24 on a short cue, so a ceiling of 21 refused seven cues that
+  were exactly as fast as the voice saying them - and a caption slower than the words is
+  not more readable, it is late. `cps` also overstates a SHORT cue, because reading is a
+  fixation plus a rate: thirty characters are read well inside 1.3 seconds whatever the
+  arithmetic says. Divide the script's characters by the audio's length, find the peak,
+  and put the ceiling above it.
 - `min_alignment` - below this the script and the transcript are not a pair, and every
   line would be timed against the wrong audio.
 - `keep_together` - **the production's own vocabulary**, and the rule that matters most in
