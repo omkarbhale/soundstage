@@ -566,8 +566,13 @@ def main(argv):
 
     grounds = {r["name"]: rgb(r["ground"]) for r in regions}
     for p in props:
-        g = grounds.get(p["region"])
-        for raw_c in (p.get("markup") or {}).get("colours", []):
+        mk = p.get("markup") or {}
+        # Ink is held to whatever it is actually written ON: a prop that lays its own
+        # ground is judged against that, everything else against the region's.
+        local = next((rgb(v) for w, v in mk.get("colours", []) if w == "ground" and rgb(v)),
+                     None)
+        base = local or grounds.get(p["region"])
+        for what, raw_c in mk.get("colours", []):
             v = raw_c.strip()
             if v.startswith("var(") or v in ("none", "transparent", "currentColor"):
                 continue
@@ -575,12 +580,13 @@ def main(argv):
             if c is None:
                 fault("COLOUR", f"prop {p['id']!r} paints {v!r}, which this cannot read - a "
                                 f"colour inside a prop is a house variable or a hex, so it "
-                                f"can be held to its own ground")
-            elif g and contrast(c, g) < R["prop_ink"]:
-                fault("UNREADABLE", f"prop {p['id']!r} paints {v} on region "
-                                    f"{p['region']!r}'s ground at {contrast(c, g):.1f}:1 - "
-                                    f"{R['prop_ink']}:1 or better, or the region's declared ink "
-                                    f"is a promise the props do not keep")
+                                f"can be held to what it is written on")
+            elif what == "ink" and base and contrast(c, base) < R["prop_ink"]:
+                fault("UNREADABLE", f"prop {p['id']!r} writes {v} on "
+                                    f"{'its own ground' if local else 'region ' + repr(p['region'])}"
+                                    f" at {contrast(c, base):.1f}:1 - {R['prop_ink']}:1 or "
+                                    f"better, or the declared ink is a promise the props do "
+                                    f"not keep")
 
     def adjacent(a, b):
         ax, ay, aw, ah = a["box"]
@@ -944,6 +950,23 @@ def main(argv):
             fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is declared and nothing in "
                             f"the timeline touches that prop")
             continue
+        # A change that animates a part the prop does not have moves nothing, and
+        # id_check.py cannot see it: the selector's HEAD exists, so it passes there.
+        mk = prop.get("markup") or {}
+        for tw in mine:
+            bits = tw["sel"].strip().split(None, 1)
+            if len(bits) < 2:
+                continue
+            part = bits[1].strip()
+            if part.startswith("."):
+                if part.lstrip(".").split(".")[0] not in mk.get("classes", []):
+                    fault("NO SUCH PART", f"change {c['note']!r} animates {tw['sel']!r} and "
+                                          f"{c['prop']!r} carries no such class - the selector "
+                                          f"resolves to nothing and the frame never moves")
+            elif re.fullmatch(r"[a-zA-Z][\w-]*", part) and part.lower() not in mk.get("tags", []):
+                fault("NO SUCH PART", f"change {c['note']!r} animates {tw['sel']!r} and "
+                                      f"{c['prop']!r} contains no <{part}> - the selector "
+                                      f"resolves to nothing and the frame never moves")
         big = [(tw, moved(tw, k, frame)) for tw in mine]
         big = [(tw, ch, why) for tw, got in big if got for ch, why in [got]]
         if not big:
@@ -953,18 +976,23 @@ def main(argv):
                             f"{R['move_scale']} of scale, {R['move_rot']:.0f} degrees, "
                             f"{R['move_alpha']} of opacity, or to another colour")
             continue
-        channels.append(big[0][1])
-        runs = [span(tw) for tw, _c, _w in big if span(tw)]
-        if runs:
-            acts.append((f"the change {c['note']!r}",
-                         (min(r[0] for r in runs), max(r[1] for r in runs))))
-        if not any(tw["at"] is None or abs(tw["at"] - c["at"]) <= 1.0 for tw, _c, _w in big):
-            near = min((tw["at"] for tw, _c, _w in big if tw["at"] is not None),
+        # Only the tweens that answer THIS change: a prop can also be an event, and
+        # its entrance is not the change.
+        near = [(tw, ch, why) for tw, ch, why in big
+                if tw["at"] is None or abs(tw["at"] - c["at"]) <= 1.0]
+        if not near:
+            when = min((tw["at"] for tw, _c, _w in big if tw["at"] is not None),
                        key=lambda a: abs(a - c["at"]), default=None)
             fault("OFF ITS BEAT", f"change {c['note']!r} is cued on {c['cue']!r} at "
                                   f"{c['at']:.1f}s and the nearest tween that moves "
-                                  f"{c['prop']!r} is at {near:.1f}s - a change happens on the "
+                                  f"{c['prop']!r} is at {when:.1f}s - a change happens on the "
                                   f"word that announces it (ADR-0003)")
+            continue
+        channels.append(near[0][1])
+        runs = [span(tw) for tw, _c, _w in near if span(tw)]
+        if runs:
+            acts.append((f"the change {c['note']!r}",
+                         (min(r[0] for r in runs), max(r[1] for r in runs))))
     for e in m["events"]:
         runs = [span(tw) for tw in roots.get(e["prop"], []) if span(tw)]
         if runs:

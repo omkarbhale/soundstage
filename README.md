@@ -446,6 +446,29 @@ in a third medium - and refuses the rest by name. Run it after building and befo
 rendering, beside `cue_check.py`, `id_check.py` and `figure_check.py`. The format states
 every threshold it enforces: [`formats/standing-set/SKILL.md`](formats/standing-set/SKILL.md).
 
+## Proving a script
+
+The `standing-set` format owns how a piece sounds as well as how it looks, because half
+the deck feeling lives in the words - and so does the machine-made feeling. A script that
+announces its own sections, or that is written in the shapes prose falls into when it has
+nothing to say, reads as a deck however well it is filmed.
+
+```
+python3 script_check.py <composition>/index.html narration.txt <composition>/transcript.json
+```
+
+It refuses the register (nothing announces itself), the shape of a line (a flat, parallel,
+padded rhythm), the bond to the set (the line that launches the camera names where it
+lands), and the tells of machine-made writing - negative parallelism, triplet lists,
+asserted significance, vague attribution, and the vocabulary that clusters in it. **Those
+tells drift**: the list inside the script rots, so read a current catalogue before trusting
+it and update the guard rather than working round it.
+
+It also refuses **the frame reading the line back**. A screen whose words are the words
+being spoken is the clearest sign of a machine-made video; a word landing on the frame as
+it is said is a real beat, so it is declared with `S.echo()` and rationed rather than
+banned. All of it runs on the script, so it costs no take: run it in the dry run.
+
 ## Captioning a module
 
 Captions are a soft subtitle track inside the video, and nowhere else. The viewer can

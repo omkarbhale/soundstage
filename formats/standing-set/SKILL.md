@@ -48,6 +48,19 @@ that runs out of reasons and keeps moving is a screensaver; a piece that moves o
 it must reads as directed. The move is the transition - there is no other kind here, and
 none is decorative.
 
+**The frame never says what the voice is saying.** A screen whose words are the words
+being spoken is the single clearest tell of a machine-made video, and no amount of camera
+work rescues it. The picture shows what the words cannot - where a thing is, how big, what
+it sits next to, what it turned into. The words say what the picture cannot - why it is
+there, what it costs, what happens if it is wrong. A word landing on the frame exactly as
+it is spoken is a real beat, which is why it is declared and rationed rather than banned.
+
+**This format is not illustration-led.** The set is built out of the real material: a
+screen captured off the product, a block of the actual code, a figure that was measured, a
+document that exists. Architecture - walls, floors, plans, panels - is what fills the space
+between them. Icons are seasoning, never the meal; an icon stands for a thing, and this
+format has room to show the thing.
+
 **Care shows up in particular places, and they are where to spend it.** Every object in
 the room is its own drawing rather than one drawing twelve times. The ground a prop
 stands on is built rather than filled. The camera lands on compositions instead of on
@@ -74,6 +87,11 @@ sentence is the reason.
 **Lines vary the way speech varies.** Some land in four words. Some run long enough to
 carry a whole thought. A script of even fifteen-word declaratives is bullet prose with
 the bullets taken out, and it sounds like one whatever is on screen.
+
+**It is spoken, not read.** A clause that survives on a page can be unsayable out loud,
+and a listener catches a pattern far faster than a reader does. Say every line aloud once.
+The ones that come out flat are the ones written by habit rather than by someone who knows
+the subject.
 
 **It opens on a thing and ends on what changed.** The first line names what the camera is
 already looking at. The last names something that is not how it was at the start. Nothing
@@ -167,9 +185,25 @@ palette changes because the camera went somewhere.
   [NO PROGRESSION]
 - **At least one travel crosses a region boundary.** [NO CROSSING]
 
-Choose the progression for the piece and state it in one line before building: what the
-first region is, what the last one is, and what the journey between them is. A palette
-that arrives somewhere is the difference between a film and a colour scheme.
+## The house palette
+
+`standing_set.HOUSE` ships it. Three dark grounds turning one way round the wheel, each
+owning an accent the others do not. Use it, or derive a palette that holds the same
+relationships and passes the same refusals.
+
+| Region    | Ground    | Ink       | Accent    | It is        |
+| --------- | --------- | --------- | --------- | ------------ |
+| `ingress` | `#0B1522` | `#E8F1FF` | `#5FE0C0` | blue-black, mint  |
+| `work`    | `#241019` | `#FFEDF3` | `#FF9A5C` | plum-black, amber |
+| `proof`   | `#0F1B12` | `#ECFAF0` | `#7AB8FF` | green-black, blue |
+
+**Two text colours in the set and no more**: the region's ink, and its accent for the one
+thing the narration is naming at that moment. A third colour is a decision nobody made.
+The accent is spent the way a reserved vector is spent - on meaning, not on variety.
+
+State the progression in one line before building: what the first region is, what the last
+one is, and what the journey between them is. A palette that arrives somewhere is the
+difference between a film and a colour scheme.
 
 # 3. Planes, and what depth is for
 
@@ -205,6 +239,9 @@ several of them at once.
 
 - **At least 12 props, in at least 4 roles**, and at most **40%** of them specimens.
   [THIN SET, ONE NOTE, ALL WORDS]
+- **Show the thing, not a picture of the idea of it.** At least 30% of props are a
+  `screen`, `code`, a `chart` or a `diagram` - material that was captured, written or
+  measured. At most 15% are `glyph`. [DRAWN NOT SHOWN]
 - **Every prop has a name**, one to four words and its own, walls included, because the
   narration is held to it. `standing_set.py` refuses an unnamed prop at build.
 - **Every prop is its own drawing.** Two props whose markup matches once the words and
@@ -232,6 +269,21 @@ several of them at once.
 # 5. Type
 
 Type is an object in the space with a position and a distance, not a label on a picture.
+
+`standing_set.TYPE` ships the scale, in world units, and `standing_set.FAMILY` the two
+families:
+
+| Step     | Size  | What it is                                        |
+| -------- | ----- | ------------------------------------------------- |
+| `wall`   | 240px | a word built at the scale of the room             |
+| `figure` | 190px | a number that is the point of its prop            |
+| `head`   | 96px  | what a prop is                                    |
+| `label`  | 56px  | what a part of it is                              |
+| `body`   | 44px  | a line to be read at the middle distance          |
+| `code`   | 34px  | source, read on a push                            |
+| `fine`   | 22px  | the detail the camera has to go and get           |
+
+Text is `Inter`; source is `JetBrains Mono`. Nothing else.
 
 - **At least 6 distinct sizes, spanning 6x**, counted where they are set on props. Six
   sizes declared in the page and used on nothing is two sizes. [ONE SIZE, NO SCALE]
@@ -307,7 +359,9 @@ way a typed highlight is. [HAND-DRIVEN]
   to be measured, and moves its prop **1.5% of the frame, half its own box, 0.15 of
   scale, 6 degrees, 0.5 of opacity, or to another colour**, within a second of the word
   that announces it (ADR-0003). Anything smaller is a line written for the guard.
-  [STATIC, OFF ITS BEAT]
+  A change that animates a part its prop does not contain moves nothing, and
+  `id_check.py` cannot see it because the head of the selector exists.
+  [STATIC, OFF ITS BEAT, NO SUCH PART]
 - **One thing moves at a time.** The camera crosses the room, or one prop does one
   thing; never both, and never two props together. Restraint is the format's whole look:
   a frame with three things animating reads as cheap, and `motion-doctrine`'s ban on idle
@@ -331,8 +385,9 @@ way a typed highlight is. [HAND-DRIVEN]
 
 Half the deck feeling lives in the words. The studio owns how narration is made - README,
 "Making narration", and ADR-0003 for what is cued from what; this owns how it sounds and
-what binds it to the set. `script_check.py` reads the script rather than the transcript,
-so all of it is refused before a take is spent.
+what binds it to the set. `script_check.py` reads the script, and the transcript
+only to place lines against framings, so all of it is refused before a take is spent - run
+it in the dry run, where the synthetic transcript already exists.
 
 ## The register
 
@@ -341,6 +396,36 @@ so all of it is refused before a take is spent.
   and nothing to recap. [SIGNPOST]
 - **No line opens on a counter** - "first", "second", "next", "finally", "also". A list
   read out loud is the thing this format replaces. [SIGNPOST]
+
+## The shapes of writing that has nothing to say
+
+Every pattern below is a substitute for having something to say, and each one is
+recognisable at a distance - in a piece that is spoken, more recognisable than in one that
+is read. Write the way a person who knows this subject talks about it.
+
+- **Negative parallelism is refused outright.** "Not only X but also Y." "It's not X, it's
+  Y." "Not a mirror but a portal." It is the most recognisable tell there is and a listener
+  hears it land. Say the thing it is. [NEGATIVE PARALLELISM]
+- **Three is a rhythm once and a machine every time.** At most 15% of lines are three-item
+  lists, and never two in a row. [RULE OF THREE]
+- **Significance is shown, not asserted.** "Serves as", "stands as", "is a testament to",
+  "plays a crucial role", "marks a pivotal moment". Each one is usually a plain `is` that
+  lost its nerve. [PUFFERY]
+- **Nothing hangs a vague claim off a plain fact.** A line ending ", highlighting its role
+  as ..." or ", underscoring the importance of ..." has added a clause instead of a thought.
+  [ADDED SIGNIFICANCE]
+- **Nobody is cited who cannot be named.** "Experts argue", "industry reports", "observers
+  have noted". Name who, or drop the claim. [VAGUE SOURCE]
+- **Watch the density, not the word.** There is a vocabulary that clusters in machine-made
+  prose - delve, intricate, interplay, tapestry, pivotal, robust, seamless, leverage, foster,
+  align, showcase, and whatever has joined them since. Any one of them is a choice. Five in
+  a short script is a pattern. At most three, or one per 150 words. [CLUSTER]
+
+**That vocabulary drifts, and the guard's copy of it rots.** The tells move with each
+generation of model and each round of public awareness; what reads as machine-made this
+year was ordinary two years ago. Read a current catalogue - Wikipedia's "Signs of AI
+writing" is the maintained one - before trusting the list in `script_check.py`, and update
+it there rather than working around it.
 
 ## The shape of a line
 
@@ -360,14 +445,21 @@ so all of it is refused before a take is spent.
 This is what makes a piece sound filmed rather than assembled, and it is exact.
 
 - **The line that launches the camera names where it lands.** A move's cue phrase sits in
-  a line that names a prop that move frames. The same holds for a change and for an event:
-  the cue sits in a line that names the thing that changes or arrives. [UNMOTIVATED]
+  a line that names a prop that move frames; a `rack`'s line names something on the plane
+  it pulls focus to, because that is what it moves attention to. The same holds for a
+  change and for an event: the cue sits in a line that names the thing that changes or
+  arrives. [UNMOTIVATED]
 - **A name is not a line.** The line carrying a cue runs at least 8 words, and prop names
   are at most 15% of the script. A script that is mostly labels is a caption track.
   [NAME DROP]
 - **Every prop the camera stops on is named** somewhere in the script. [UNNAMED]
 - **The voice stays in the room**: never more than 25 words without naming something in
   the set. [ABSTRACT RUN]
+- **The frame does not read the line back.** Of the words in a line, discounting the names
+  of what is on screen, at most 35% may also be written on a prop covering the frame while
+  that line is spoken. Where a word is meant to land on the frame as it is said, declare it
+  - `S.echo(prop, cue=..., note=...)` - and spend at most two in a piece. An unmarked
+  mirror is the tell of machine-made video; a declared one is a beat. [ECHO]
 
 ## How it opens and how it ends
 
@@ -399,12 +491,21 @@ python3 cue_check.py <composition>/transcript.json <composition>/gen.py
 python3 id_check.py <composition>/index.html
 python3 figure_check.py <composition>/index.html
 python3 set_check.py <composition>/index.html <composition>/transcript.json [--why]
-python3 script_check.py <composition>/index.html narration.txt
+python3 script_check.py <composition>/index.html narration.txt <composition>/transcript.json
 ```
 
-`review_frames.py` picks the seconds to look at; `hyperframes snapshot --at` captures
-them (README, "Reviewing a module without rendering it"). Render from a Linux-native
-path (README, "Where to render").
+7. **Look at it.** Capture frames and judge them by eye - the guards measure, they do not
+   see. `review_frames.py` picks the seconds and `hyperframes snapshot --at` captures them
+   (README, "Reviewing a module without rendering it"). Take at minimum: the opening
+   framing; the midpoint of the longest travel; the first framing inside each region; and
+   the closing wide. Render from a Linux-native path (README, "Where to render").
+
+   At each one, answer out loud: is the near plane doing anything, or is the frame flat in
+   practice however the numbers read? Does the accent land on the thing being named, or on
+   whatever was convenient? Is the type at this distance actually readable? Does the frame
+   have a subject, or three things competing? Is there anything in it that was put there to
+   fill space? A piece nobody has looked at has not been finished, and none of the above is
+   measurable.
 
 # What makes a piece wrong
 
@@ -437,6 +538,21 @@ are refused anyway:
 | Fifteen-word declaratives, each opening the same way              | bullet prose [FLAT VOICE, PARALLEL] |
 | A line that sends the camera somewhere it does not name           | assembled, not filmed [UNMOTIVATED] |
 | A script that ends by recapping what it covered                   | a deck [RECAP]        |
+| "Not only a tray, but a pivotal moment in the process"            | the loudest tell there is [NEGATIVE PARALLELISM, PUFFERY] |
+| Every list a triplet                                              | a machine [RULE OF THREE] |
+| A line ending ", underscoring its enduring significance"          | a clause instead of a thought [ADDED SIGNIFICANCE] |
+
+## The tells of machine-made video, in this medium
+
+| The tell                                                          | What to do instead    |
+| ----------------------------------------------------------------- | --------------------- |
+| The frame writes out the sentence being spoken                    | show what the words cannot say [ECHO] |
+| An evenly-spaced row of generic shapes                            | one prop containing the row, or real material [TWINS, DRAWN NOT SHOWN] |
+| A gradient, a glow or a blur that carries no information          | depth carries it: planes, focus, scale |
+| An icon chosen because it exists rather than because it says something | show the thing the icon stands for [DRAWN NOT SHOWN] |
+| Decoration in the space where the information should be           | the prop IS the information |
+| A third and fourth colour arriving by accident                    | ink and accent, and the accent means "this one" |
+| Every prop the same drawing at different sizes                    | every object its own [TWINS] |
 | A change declared, and a tween that moves nothing answering it    | a line written for the guard [STATIC] |
 | A big empty world with everything standing in one frame of it     | a poster [SMALL WORLD] |
 | The set ends exactly as it started                                | nothing was learned by going [NO PAYOFF] |

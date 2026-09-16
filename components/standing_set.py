@@ -74,8 +74,8 @@ FONT_SIZE = re.compile(r"font-size:\s*([\d.]+)px")
 WORDS = re.compile(r"[A-Za-z]{2,}")
 # What a prop is MADE of, so a role is a claim about markup rather than a label.
 GEOM = re.compile(r"(?:width|height|left|top|background|transform|border|stroke|d)\s*[:=]")
-COLOUR = re.compile(r"(?:^|[;\"\s])(?:color|background|background-color|border-color|fill|"
-                    r"stroke)\s*:\s*([^;\"]+)")
+INK = re.compile(r"(?:^|[;\"\s])(?:color|fill|stroke)\s*:\s*([^;\"]+)")
+GROUND = re.compile(r"(?:^|[;\"\s])(?:background|background-color)\s*:\s*([^;\"]+)")
 
 
 def _tags_off(markup):
@@ -180,7 +180,11 @@ class Set:
             "geom": sum(1 for tag in re.findall(r"<[^>]*>", html) if GEOM.search(tag)),
             "mono": any("mono" in f.lower()
                         for f in re.findall(r"font-family:\s*([^;\"]+)", html)),
-            "colours": [c.strip() for c in COLOUR.findall(html)],
+            "tags": sorted({t.lower() for t in re.findall(r"<([a-zA-Z][\w-]*)", html)}),
+            "classes": sorted({c for a in re.findall(r'class="([^"]+)"', html)
+                               for c in a.split()}),
+            "colours": ([("ground", c.strip()) for c in GROUND.findall(html)]
+                        + [("ink", c.strip()) for c in INK.findall(html)]),
         }
         if WORDS.search(_tags_off(html)) and not sizes:
             raise SystemExit(f"prop {pid!r} carries words and declares no font-size - "

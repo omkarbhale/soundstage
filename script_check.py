@@ -34,6 +34,7 @@ R = {
     "short_share": 0.15, "short_run": 5, "same_open": 0.20, "open_run": 3,
     "gap_words": 25, "name_share": 0.15, "first_sentence": 8, "echo": 6,
     "mirror": 0.35, "on_screen": 0.06, "echoes": 2,
+    "triplet_share": 0.15, "triplets_free": 2, "cluster_per": 150, "cluster_max": 3,
 }
 
 # Words too common to mean anything when the frame and the voice share them.
@@ -59,6 +60,35 @@ DECK = [
 # sentence they are a list being read out.
 COUNTERS = ("first", "firstly", "second", "secondly", "third", "thirdly", "fourth",
             "next", "finally", "lastly", "also", "additionally", "furthermore")
+
+# The shapes a machine falls into when it has nothing to say. These DRIFT - the list
+# below is a seed, not a law, and the rule that matters is density rather than any one
+# word. Re-read a current catalogue before trusting it; what reads as a tell this year
+# was ordinary writing two years ago and will be again.
+NEGATIVE = [
+    (r"\bnot only\b[^.!?]{0,80}?\bbut\b", "not only X but also Y"),
+    (r"\bnot just\b[^.!?]{0,80}?\b(?:but|it'?s)\b", "not just X but Y"),
+    (r"\bit'?s not\b[^.!?]{0,60}?,\s*it'?s\b", "it's not X, it's Y"),
+    (r"\bis not\b[^.!?]{0,60}?,\s*it is\b", "it is not X, it is Y"),
+    (r"\bnot a\b[^.!?]{0,60}?\bbut a\b", "not a X but a Y"),
+    (r"\bdoesn'?t just\b[^.!?]{0,60}?,\s*it\b", "X doesn't just Y, it Z"),
+]
+PUFFERY = ["serves as", "stands as", "functions as", "is a testament", "a testament to",
+           "plays a crucial role", "plays a vital role", "marks a pivotal", "pivotal moment",
+           "reflects broader", "broader trends", "indelible mark", "deeply rooted",
+           "in the heart of", "a diverse array", "rich tapestry"]
+VAGUE = ["experts argue", "experts say", "experts believe", "industry reports",
+         "observers have noted", "observers note", "many believe", "it is widely believed",
+         "studies show", "research suggests", "critics argue"]
+SIGNIFY = ("highlighting", "underscoring", "emphasizing", "reflecting", "contributing",
+           "fostering", "cultivating", "encompassing", "showcasing", "demonstrating",
+           "solidifying", "cementing", "ensuring")
+CLUSTER = ("delve", "intricate", "interplay", "tapestry", "testament", "pivotal", "crucial",
+           "vital", "underscore", "underscores", "landscape", "meticulous", "vibrant",
+           "garner", "boasts", "bolster", "bolstered", "enduring", "robust", "seamless",
+           "leverage", "harness", "realm", "myriad", "plethora", "profound", "groundbreaking",
+           "renowned", "nestled", "align", "aligns", "enhance", "enhances", "foster",
+           "showcase", "showcases", "navigate", "unlock", "empower", "transformative")
 
 FAULTS = []
 
@@ -157,6 +187,41 @@ def main(argv):
             fault("SIGNPOST", f"a line opens {raw.split()[0]!r} - an enumerated list read out "
                               f"loud is the thing this format replaces: {raw[:60]!r}")
 
+    # --- the shapes of writing that has nothing to say ------------------------
+    for pat, shape in NEGATIVE:
+        hit = re.search(pat, plain)
+        if hit:
+            fault("NEGATIVE PARALLELISM",
+                  f"{hit.group(0)[:48]!r} is {shape} - the most recognisable tell there is, and "
+                  f"a listener hears it far more sharply than a reader. Say the thing it is")
+    for phrase in PUFFERY:
+        if phrase in plain:
+            fault("PUFFERY", f"the script says {phrase!r} - that is significance asserted "
+                             f"instead of shown, and usually a plain 'is' that lost its nerve")
+    for phrase in VAGUE:
+        if phrase in plain:
+            fault("VAGUE SOURCE", f"the script says {phrase!r} with nobody behind it - name who, "
+                                  f"or drop the claim")
+    for raw, _ws in lines:
+        tail = re.search(r",\s+(\w+ing)\b[^.!?]*[.!?]?\s*$", raw)
+        if tail and tail.group(1).lower() in SIGNIFY:
+            fault("ADDED SIGNIFICANCE",
+                  f"a line ends {', ' + tail.group(1)!r} and hangs a vague claim off a plain "
+                  f"fact: {raw[-56:]!r}. Either the claim is the line or it is not in it")
+    # X, Y and Z - with or without the serial comma.
+    trips = [raw for raw, _ws in lines
+             if re.search(r"[^.!?,]{2,40},\s*(?:[^.!?,]{2,40},\s*)?[^.!?,]{2,40}\s+"
+                          r"(?:and|or)\s+\w+", raw)]
+    if len(trips) > max(R["triplets_free"], R["triplet_share"] * len(lines)):
+        fault("RULE OF THREE", f"{len(trips)} of {len(lines)} lines are three-item lists - three "
+                               f"is a rhythm once and a machine every time: {trips[0][:48]!r}")
+    found = [w for w in words if w in CLUSTER]
+    if len(found) > max(R["cluster_max"], len(words) / R["cluster_per"]):
+        fault("CLUSTER", f"{len(found)} words from the tell vocabulary ("
+                         f"{', '.join(sorted(set(found))[:6])}) in {len(words)} words. Any one "
+                         f"of them is a choice; this many is a pattern, and the pattern is "
+                         f"writing that has nothing to say")
+
     # --- the shape of a line -------------------------------------------------
     lens = [len(ws) for _r, ws in lines]
     for raw, ws in lines:
@@ -245,6 +310,9 @@ def main(argv):
     for sh in shots:
         carried.append(sh["on"] or (carried[-1] if carried else []))
     for sh, on in list(zip(shots, carried))[1:]:
+        if sh["kind"] == "rack":
+            on = [p["id"] for p in m["props"] if p["plane"] == sh["focus"]
+                  and seen_frac(p, sh, m["planes"], m["frame"]) >= R["on_screen"]]
         bond(sh["cue"], on, f"the {sh['kind']} move")
     for c in changes:
         bond(c["cue"], [c["prop"]], f"the change {c['note']!r}")
