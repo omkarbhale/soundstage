@@ -55,7 +55,7 @@ R = {                              # every threshold the format states, in one p
     "centred": 0.40, "centre_slack": 0.06,
     "move_px": 0.015, "move_pct": 50.0, "move_scale": 0.15, "move_rot": 6.0,
     "move_alpha": 0.5, "move_lum": 0.10, "move_hue": 25.0, "move_size_pct": 25.0,
-    "prop_ink": 4.5,
+    "prop_ink": 4.5, "channel_share": 0.5, "same_kind_run": 2, "stencil_share": 3,
     "prop_words": 60, "plate_words": 4, "lum_step": 0.04, "hue_step": 25.0,
     "hue_turn": 70.0,
     "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
@@ -247,8 +247,16 @@ def num(o, k):
         return None
 
 
+def span(tw):
+    """When a tween runs, as (start, end)."""
+    if tw["at"] is None:
+        return None
+    d = num(tw["objs"][-1], "duration") if tw["objs"] else None
+    return tw["at"], tw["at"] + (d or 0.0)
+
+
 def moved(tw, k, frame):
-    """What a tween does that a viewer can see, or None.
+    """Which channel a tween moves on and by how much, or None.
 
     Only a `fromTo` says. A `to` leaves its start off the page, so there is nothing
     to measure and nothing to prove - which is also why the engine prefers it that
@@ -260,27 +268,27 @@ def moved(tw, k, frame):
     for key, span in (("x", fw), ("y", fh), ("width", fw), ("height", fh)):
         p, q = num(a, key), num(b, key)
         if p is not None and q is not None and abs(q - p) * k / span >= R["move_px"]:
-            return f"{key} by {abs(q - p) * k / span * 100:.1f}% of the frame"
+            return "shift", f"{key} by {abs(q - p) * k / span * 100:.1f}% of the frame"
     for key in ("xPercent", "yPercent"):
         p, q = num(a, key), num(b, key)
         if p is not None and q is not None and abs(q - p) >= R["move_pct"]:
-            return f"{key} by {abs(q - p):.0f}"
+            return "slide", f"{key} by {abs(q - p):.0f}"
     for key in ("scale", "scaleX", "scaleY"):
         p, q = num(a, key), num(b, key)
         if p is not None and q is not None and abs(q - p) >= R["move_scale"]:
-            return f"{key} by {abs(q - p):.2f}"
+            return "grow", f"{key} by {abs(q - p):.2f}"
     p, q = num(a, "rotation"), num(b, "rotation")
     if p is not None and q is not None and abs(q - p) >= R["move_rot"]:
-        return f"rotation by {abs(q - p):.0f} degrees"
+        return "turn", f"rotation by {abs(q - p):.0f} degrees"
     for key in ("opacity", "autoAlpha"):
         p, q = num(a, key), num(b, key)
         if p is not None and q is not None and abs(q - p) >= R["move_alpha"]:
-            return f"{key} by {abs(q - p):.2f}"
+            return "fade", f"{key} by {abs(q - p):.2f}"
     for key in ("color", "backgroundColor", "borderColor", "fill", "stroke"):
         p, q = rgb(a.get(key, "")), rgb(b.get(key, ""))
         if p and q and (abs(lum(p) - lum(q)) >= R["move_lum"]
                         or hue_gap(hue_sat(p)[0], hue_sat(q)[0]) >= R["move_hue"]):
-            return f"{key} to another colour"
+            return "light", f"{key} to another colour"
     return None
 
 
@@ -297,7 +305,18 @@ def cue_matches(tok, phrase):
     return [i for i in range(len(tok) - len(want) + 1) if tok[i:i + len(want)] == want]
 
 
-def why(props, shots, legs, planes, frame, targets):
+def off_of(sh, on, by_id, planes, frame):
+    """Where a framing puts its subject, measured off the frame rather than asked for -
+    which is the number [CENTRED] reads."""
+    if not on:
+        return "-"
+    bs = [box_of(by_id[pid], sh, planes, frame) for pid in on]
+    cx = (min(b[0] for b in bs) + max(b[0] + b[2] for b in bs)) / 2
+    cy = (min(b[1] for b in bs) + max(b[1] + b[3] for b in bs)) / 2
+    return f"{max(abs(cx - frame[0] / 2) / frame[0], abs(cy - frame[1] / 2) / frame[1]) * 100:.0f}%"
+
+
+def why(props, shots, legs, planes, frame, targets, by_id, subject):
     """Where every prop is seen and how much ground each move crosses.
 
     Placing props is the part of this format that cannot be done by eye: a prop's
@@ -310,13 +329,15 @@ def why(props, shots, legs, planes, frame, targets):
         b = max([seen(p, c, planes, frame) for c in mid] or [0.0])
         print(f"  {p['id']:12s} {p['role']:9s} {p['plane']:5s} {a * 100:8.1f}% "
               f"{b * 100:8.1f}%  {'yes' if p['id'] in targets else '-'}")
-    print(f"\n  {'move':24s} {'scale':>13s} {'frames':>7s}  ground at .25/.50/.75")
-    for (b, cams), a in zip(legs, shots):
+    print(f"\n  {'move':24s} {'scale':>13s} {'frames':>7s}  "
+          f"{'ground .25/.5/.75':14s} {'off':>6s}")
+    for i, ((b, cams), a) in enumerate(zip(legs, shots)):
         mv = max(abs(b["cx"] - a["cx"]) * b["s"] / frame[0],
                  abs(b["cy"] - a["cy"]) * b["s"] / frame[1])
         g = "/".join(f"{covered(c, props, planes, frame) * 100:.0f}" for c in cams)
         print(f"  {b['kind'] + ' ' + str(b['cue'])[:18]:24s} "
-              f"{a['s']:6.3f}->{b['s']:6.3f} {mv:7.2f}  {g}")
+              f"{a['s']:6.3f}->{b['s']:6.3f} {mv:7.2f}  {g:14s} "
+              f"{off_of(b, subject[i + 1], by_id, planes, frame):>6s}")
     print()
 
 
@@ -450,6 +471,24 @@ def main(argv):
                 fault("TWINS", f"props {a['id']!r} and {b['id']!r} are the same role at the same "
                                f"size - repeated identical objects belong inside one prop, not "
                                f"beside each other like cards on a slide")
+    # The same rule, looking at the drawing instead of the numbers. A set furnished by
+    # calling one helper twelve times is one prop twelve times.
+    drawn = collections.defaultdict(list)
+    cut = collections.defaultdict(list)
+    for p in props:
+        if p.get("shape"):
+            drawn[p["shape"]].append(p["id"])
+            cut[p["stencil"]].append(p["id"])
+    for ids in drawn.values():
+        if len(ids) > 1:
+            fault("TWINS", f"props {', '.join(repr(i) for i in ids)} are the same drawing with "
+                           f"different words on it - a set furnished from one helper is one prop "
+                           f"repeated, and a room of identical objects is a stock photograph")
+    for ids in cut.values():
+        if len(ids) > R["stencil_share"]:
+            fault("TWINS", f"{len(ids)} props ({', '.join(repr(i) for i in ids)}) are cut from "
+                           f"one stencil with the numbers changed - at most "
+                           f"{R['stencil_share']} may share a construction")
     NEEDS = {
         "screen":   (lambda k: k["fig"],
                      "a frame from components/figure.py; a product screen is measured, "
@@ -776,6 +815,13 @@ def main(argv):
                                     f"holds still and moves the focus")
             if b["focus"] == a["focus"]:
                 fault("NOT A RACK", f"the rack on {b['cue']!r} focuses where it already was")
+    run = 1
+    for a, b in zip(kinds, kinds[1:]):
+        run = run + 1 if a == b else 1
+        if run > R["same_kind_run"]:
+            fault("ONE MOVE", f"{run} {b} moves in a row - a move is spent on the change of "
+                              f"view the words just asked for, and leaning on one is a habit "
+                              f"rather than a choice")
     ss = [s["s"] for s in shots]
     if max(ss) / min(ss) < R["scale_range"]:
         fault("ONE DISTANCE", f"the camera works over {max(ss) / min(ss):.2f}x of scale - at "
@@ -867,6 +913,8 @@ def main(argv):
         if cnt > 1:
             fault("STATIC", f"prop {pid!r} carries {cnt} declared changes - one prop, one "
                             f"change, or three changes is three lines about one thing")
+    channels = []
+    acts = []                      # (what it is, when it runs) for every declared act
     for c in m["changes"]:
         prop = by_id[c["prop"]]
         if prop["role"] == "surface":
@@ -882,21 +930,57 @@ def main(argv):
             fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is declared and nothing in "
                             f"the timeline touches that prop")
             continue
-        real = [(tw, moved(tw, k, frame)) for tw in mine]
-        big = [(tw, why) for tw, why in real if why]
+        big = [(tw, moved(tw, k, frame)) for tw in mine]
+        big = [(tw, ch, why) for tw, got in big if got for ch, why in [got]]
         if not big:
             fault("STATIC", f"change {c['note']!r} on {c['prop']!r} moves nothing a viewer can "
                             f"see. A change is written as a fromTo and shifts the prop "
                             f"{R['move_px'] * 100:.1f}% of the frame, half its own box, "
                             f"{R['move_scale']} of scale, {R['move_rot']:.0f} degrees, "
                             f"{R['move_alpha']} of opacity, or to another colour")
-        elif not any(tw["at"] is None or abs(tw["at"] - c["at"]) <= 1.0 for tw, _w in big):
-            near = min((tw["at"] for tw, _w in big if tw["at"] is not None),
+            continue
+        channels.append(big[0][1])
+        runs = [span(tw) for tw, _c, _w in big if span(tw)]
+        if runs:
+            acts.append((f"the change {c['note']!r}",
+                         (min(r[0] for r in runs), max(r[1] for r in runs))))
+        if not any(tw["at"] is None or abs(tw["at"] - c["at"]) <= 1.0 for tw, _c, _w in big):
+            near = min((tw["at"] for tw, _c, _w in big if tw["at"] is not None),
                        key=lambda a: abs(a - c["at"]), default=None)
             fault("OFF ITS BEAT", f"change {c['note']!r} is cued on {c['cue']!r} at "
                                   f"{c['at']:.1f}s and the nearest tween that moves "
                                   f"{c['prop']!r} is at {near:.1f}s - a change happens on the "
                                   f"word that announces it (ADR-0003)")
+    for e in m["events"]:
+        runs = [span(tw) for tw in roots.get(e["prop"], []) if span(tw)]
+        if runs:
+            acts.append((f"the event {e['note']!r}",
+                         (min(r[0] for r in runs), max(r[1] for r in runs))))
+
+    # The set performs in more than one way.
+    seen_ch = collections.Counter(channels)
+    if seen_ch and max(seen_ch.values()) > R["channel_share"] * len(m["changes"]):
+        top, cnt = seen_ch.most_common(1)[0]
+        fault("STATIC", f"{cnt} of {len(m['changes'])} changes are the same gesture ({top}) - "
+                        f"at most {int(R['channel_share'] * 100)}% may be. A lamp lifting, a "
+                        f"count climbing and a contract being signed are not one animation "
+                        f"three times")
+
+    # RESTRAINT. The eye is given one thing: the camera crossing the room, or one thing
+    # in the room doing one thing. Two at once is noise, and noise reads as cheap
+    # however well each half is made.
+    for what, (t0, t1) in acts:
+        for sh in moves:
+            if t0 < sh["at"] + sh["dur"] - 0.05 and sh["at"] < t1 - 0.05:
+                fault("TWO AT ONCE", f"{what} runs while the camera is in the {sh['kind']} on "
+                                     f"{sh['cue']!r} - the camera moves or the set does, never "
+                                     f"both at once")
+                break
+    for i, (w1, (a0, a1)) in enumerate(acts):
+        for w2, (b0, b1) in acts[i + 1:]:
+            if a0 < b1 - 0.05 and b0 < a1 - 0.05:
+                fault("TWO AT ONCE", f"{w1} and {w2} run together - one thing moves at a time, "
+                                     f"or the frame is busy rather than alive")
 
     live = {}
     for e in m["events"]:
@@ -956,7 +1040,7 @@ def main(argv):
     print(f"  {n} props on {len(used)} planes, {len(regions)} regions, {len(moves)} moves, "
           f"{rest / m['end'] * 100:.0f}% held")
     if show:
-        why(props, shots, legs, planes, frame, targets)
+        why(props, shots, legs, planes, frame, targets, by_id, subject)
     for f in FAULTS:
         print(f)
     if FAULTS:

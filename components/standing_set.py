@@ -37,6 +37,7 @@
 # This refuses everything geometrically impossible - a prop on no plane, a prop in no
 # region, a framing spanning two planes, a move that runs past the next cue. What
 # makes a piece CHEAP rather than impossible is `set_check.py`'s to refuse.
+import hashlib
 import html as _html
 import json
 import re
@@ -64,6 +65,25 @@ COLOUR = re.compile(r"(?:^|[;\"\s])(?:color|background|background-color|border-c
 
 def _tags_off(markup):
     return re.sub(r"<[^>]*>", " ", markup)
+
+
+def _shape(markup):
+    """What a prop is a drawing OF, with its words and their sizes taken out.
+
+    Two props that hash the same are one prop drawn twice, whatever they are
+    labelled and whatever size they are placed at."""
+    m = re.sub(r">[^<]*<", "><", markup)
+    m = re.sub(r"font-size:\s*[\d.]+px;?", "", m)
+    return hashlib.sha1(re.sub(r"\s+", " ", m).strip().encode()).hexdigest()[:12]
+
+
+def _stencil(markup):
+    """The same, with every number taken out too: the stencil a drawing was cut
+    from. A family of related marks shares one; a set furnished from one helper
+    shares nothing else."""
+    m = re.sub(r">[^<]*<", "><", markup)
+    m = re.sub(r"[-\d.]+", "#", m)
+    return hashlib.sha1(re.sub(r"\s+", " ", m).strip().encode()).hexdigest()[:12]
 
 
 class Set:
@@ -106,15 +126,25 @@ class Set:
         self.regions.append({"name": name, "box": [x, y, w, h],
                              "ground": ground, "ink": ink, "accent": accent})
 
-    def prop(self, pid, role, plane, *, at, size, html, cls=""):
+    def prop(self, pid, role, plane, *, at, size, html, name=None, cls=""):
         """A thing that exists in the space, from the moment the module starts.
 
         `role` is what it is - screen, code, diagram, glyph, specimen, surface,
         artifact, chart. `at` is its top-left in world coordinates, `size` its size in
         world units; both are read by the camera when it frames this prop, so they are
-        the prop's real extent and not a guess at one."""
+        the prop's real extent and not a guess at one. `name` is what the narrator
+        calls it, which is how the script is held to the picture."""
         if pid in self.props:
             raise SystemExit(f"prop {pid!r} is declared twice - every prop is one thing")
+        if role != "surface":
+            if not name or not (1 <= len(name.split()) <= 4):
+                raise SystemExit(f"prop {pid!r} needs a name of one to four words - the "
+                                 f"narrator has to be able to call it something")
+            taken = {p["name"]: i for i, p in self.props.items() if p.get("name")}
+            if name in taken:
+                raise SystemExit(f"prop {pid!r} is named {name!r}, which is already "
+                                 f"{taken[name]!r} - two things with one name cannot be told "
+                                 f"apart by the words")
         if plane not in self.planes:
             raise SystemExit(f"prop {pid!r} sits on plane {plane!r}, which is not declared")
         x, y = (float(v) for v in at)
@@ -144,7 +174,8 @@ class Set:
         self.props[pid] = {"id": pid, "role": role, "plane": plane, "at": [x, y],
                            "size": [w, h], "region": where, "html": html, "cls": cls,
                            "px": sizes, "words": len(WORDS.findall(_tags_off(html))),
-                           "markup": markup}
+                           "markup": markup, "name": name,
+                           "shape": _shape(html), "stencil": _stencil(html)}
         self.order.append(pid)
 
     def plate(self, html):
@@ -270,11 +301,13 @@ class Set:
         # Rounded here and nowhere else, so the manifest a guard re-derives from and
         # the timeline it re-derives are the same numbers to the last digit.
         # The offset moves the camera, not the props: the subject slides off centre by
-        # that fraction of the frame. It still has to fit, which is what refuses an
-        # offset large enough to push the thing being framed out of the picture.
+        # that fraction of the frame. Answered at the SUBJECT's distance, so `off=0.1`
+        # is a tenth of the frame whether the thing framed is near or far. It still has
+        # to fit, which is what refuses an offset large enough to push it out of shot.
         s = min(sx, sy)
-        cx -= float(off[0]) * fw / s
-        cy -= float(off[1]) * fh / s
+        d0 = self.planes[self.props[on[0]]["plane"]]
+        cx -= float(off[0]) * fw * d0 / s
+        cy -= float(off[1]) * fh * d0 / s
         for pid in on:
             p = self.props[pid]
             d = self.planes[p["plane"]]
