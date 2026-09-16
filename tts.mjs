@@ -6,7 +6,7 @@
 //                [--speed 1]
 //
 // TWO ENGINES BEHIND ONE PATH. ADR-0005 chose OpenAI and this adapter is the
-// whole of that choice; ADR-0008 adds local Kokoro beside it, which the engine
+// whole of that choice; ADR-0009 adds local Kokoro beside it, which the engine
 // speaks natively - so the Kokoro path SHELLS OUT TO THE ENGINE rather than
 // reimplementing it (ADR-0001). Add no third path and no second caller.
 //

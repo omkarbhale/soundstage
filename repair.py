@@ -17,7 +17,7 @@
 # is safe - and expected - to run on every module.
 # The window is re-measured through `transcribe.py`, not through a second client
 # of its own: that keeps ONE path to word timings, so this works on whichever
-# engine the module was aligned with (ADR-0008) instead of only on OpenAI.
+# engine the module was aligned with (ADR-0009) instead of only on OpenAI.
 import json, os, subprocess, sys, tempfile
 
 # A flag takes a value, so skip both - counting the value as a positional is how
