@@ -17,6 +17,7 @@ into `SKILL.md` and delete it from here.
 [`NEVER READ` forces the smallest-type prop to be a destination](#never-read-forces-the-smallest-type-prop-to-be-a-destination)  
 [An offset can turn a push into a travel, and on a far wide it is enormous](#an-offset-can-turn-a-push-into-a-travel-and-on-a-far-wide-it-is-enormous)  
 [Far props lean in from the next room, and a tall far wall frames very wide](#far-props-lean-in-from-the-next-room-and-a-tall-far-wall-frames-very-wide)  
+[Budget for the render: the depth of field is a CSS blur on every frame](#budget-for-the-render-the-depth-of-field-is-a-css-blur-on-every-frame)  
 
 **Looking at it and listening to it**  
 [`--freeze` was drawing the wrong framing, and every frame looked right](#--freeze-was-drawing-the-wrong-framing-and-every-frame-looked-right)  
@@ -140,6 +141,23 @@ Measured on this piece's take, which is what the check is worth: 57 full stops, 
 pause 0.64s, one under 0.20s; 45 commas, median 0.24s. That is the difference between a
 voice that lands the writing and one that does not, and it is invisible in every other
 number.
+
+## Budget for the render: the depth of field is a CSS blur on every frame
+
+A standing set is slow to render and the reason is structural, not a fault. Depth of
+field is the format's own idea - `standing_set.py` computes a `filter: blur()` per plane
+from its distance to the focus - and on a box with no GPU the engine falls back to
+`captureMode: "screenshot"`, which rasterises that blur once per frame.
+
+Measured here at 1920x1080, same page, blur removed as the only variable: **about 0.6s a
+frame of blur cost**. On a four-minute piece that is 7,904 frames and roughly eighty
+minutes of rendering that a deck would not pay - before any contention. With a second
+render on the same box it ran at about one frame a second.
+
+This is the price of the thing the format is for, so **budget for it rather than turning
+it down**: the depth is what makes a frame three distances at once. Practical notes -
+render when nothing else has the machine, and treat the seek-and-screenshot check above
+as the way to judge the look, because it costs seconds where a render costs an hour.
 
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
