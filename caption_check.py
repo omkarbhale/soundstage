@@ -57,6 +57,7 @@ import unicodedata
 STYLE_KEYS = {
     "line_chars": "characters a line",
     "lines": "lines a cue",
+    "cue_seconds": "[shortest, longest] a cue may be on screen",
     "fast_cps": "characters a second above which a cue is reported as fast",
     "hard_cps": "characters a second above which a cue is refused as unreadable",
     "language": "the language tag the muxed track must carry",
@@ -189,10 +190,14 @@ def main(argv):
             f"      caption: ...{' '.join(got[max(0, at - 4):at + 5])}...")
 
     # 2. the times are a timeline
+    lo, hi = style["cue_seconds"]
     prev = None
     for c in cues:
         if c["end"] <= c["start"]:
             faults.append(f"cue {c['n']}: ends at or before it starts")
+        elif c["end"] - c["start"] > hi + 0.01:
+            faults.append(f"cue {c['n']}: on screen {c['end'] - c['start']:.2f}s "
+                          f"(longest allowed is {hi}s)")
         if prev is not None and c["start"] < prev["end"]:
             faults.append(f"cue {c['n']}: starts before cue {prev['n']} has gone")
         prev = c

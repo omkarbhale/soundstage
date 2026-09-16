@@ -79,13 +79,19 @@ CSS = """
       .fig-tag.south::after { left: 26px; top: -16px; width: 3px; height: 16px; }
       .fig-tag.north::after { left: 26px; bottom: -16px; width: 3px; height: 16px; }
 
-      /* The inset: the same picture, magnified on the marked region, in its own
-         column. Beside the wide shot and never instead of it - the wide shot is what
-         teaches where the thing is, and this is only what it says. */
+      /* The inset: the same picture, magnified on the marked region. Beside the wide
+         shot and never instead of it - the wide shot is what teaches where the thing
+         is, and this is only what it says.
+         Two placements, and the choice is arithmetic rather than taste. `beside` puts
+         it in its own column, which a figure-led scene has room for. `corner` stands
+         it proud of the frame's bottom-right, for a scene that also carries a column
+         of type: there a second column would push the whole row off the frame. */
       .fig-zoom {
         flex: none; border-radius: 16px; background-repeat: no-repeat;
         box-shadow: var(--lift); outline: 3px solid var(--accent); outline-offset: -3px;
       }
+      .figrow .fig-zoom { display: none; }   /* see above: no room, and it would cover
+                                                the very thing it magnifies */
       .fig-cap { font-size: 29px; color: var(--ink-3); line-height: 1.35;
                  text-align: center; max-width: 1320px; }
       .fig-cap b { color: var(--ink); font-weight: 650; }
@@ -108,6 +114,29 @@ CSS = """
       .figrow .def-t { font-size: 29px; width: 190px; }
       .figrow .def-d { font-size: 26px; }
       .figrow .pill { font-size: 25px; padding: 13px 26px; }
+      /* Anything that assumes the full frame has to be told otherwise in here, or it
+         reaches under the figure. These are the house's full-width containers. */
+      .figrow .cols, .figrow .versus { flex-direction: column; gap: 16px; }
+      /* Three cards that were a row are now a column, so they have to give back the
+         height they used to take sideways or the last one falls off the frame. */
+      .figrow .cols .card { padding: 22px 26px; }
+      .figrow .cols .card-v { font-size: 27px; }
+      .figrow .cols .card-k { font-size: 18px; margin-bottom: 10px; }
+      .figrow .cols .card-ico { margin-bottom: 10px; }
+      .figrow .cols .card-ico .ico { width: 34px; height: 34px; }
+      .figrow .ladder { width: auto; gap: 12px; }
+      .figrow .rung { padding: 14px 20px; gap: 16px; }
+      .figrow .rung-n { width: 58px; font-size: 19px; }
+      .figrow .rung-t { font-size: 25px; }
+      .figrow .rung-w { width: 200px; font-size: 20px; }
+      .figrow .stack.wide { max-width: 620px; }
+      .figrow .refusal { font-size: 25px; padding: 18px 24px; gap: 20px; }
+      .figrow .refusal .ico { width: 34px; height: 34px; }
+      .figrow .refusals, .figrow .gates, .figrow .owns, .figrow .opens { gap: 14px; }
+      .figrow .vs-t { font-size: 38px; }
+      .figrow .vs-q { font-size: 27px; }
+      .figrow .vs-l div { font-size: 23px; }
+      .figrow .word { font-size: 38px; }
 """
 
 # Geometry, not taste: how much clear width a tag needs beside a mark before it is

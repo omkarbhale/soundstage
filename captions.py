@@ -324,12 +324,14 @@ def render(groups, style, offset):
     """Cue text and timing. A cue starts at its first word and ends at its last, held a
     little into the pause after it - a caption that vanishes on the last syllable reads
     as a flicker - and always with a visible gap before the next one arrives."""
-    lo, _hi = style["cue_seconds"]
+    lo, hi = style["cue_seconds"]
     hold, gap = style["hold_seconds"], style["gap_seconds"]
     rows = []
     for n, g in enumerate(groups):
         start = g[0]["start"] + offset
-        end = max(g[-1]["end"] + offset, start + lo, g[-1]["end"] + offset + hold)
+        # The hold is room for the last syllable to land, not licence to outstay the
+        # longest cue the production allows: it is clamped to that ceiling.
+        end = min(max(g[-1]["end"] + offset + hold, start + lo), start + hi)
         nxt = groups[n + 1][0]["start"] + offset if n + 1 < len(groups) else None
         if nxt is not None:
             end = min(end, nxt - gap)

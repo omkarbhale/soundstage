@@ -374,6 +374,15 @@ because there is nothing to spot. Run it after building and before rendering, be
 other two. [ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md) has the
 argument.
 
+**A figure changes the layout around it, so re-check the frame.** A stack of cards that
+fits comfortably across 1580px does not fit in the 620px column beside a screenshot: it
+gets taller, and the last card renders off the bottom of the picture. The frame then
+reads as a design with a lot of air at the top, and the card that fell off was the one
+carrying the point. Measured twice in one afternoon's work, both times by eye. Whatever
+the production uses to check it - the engine's own `snapshot`, or a browser measuring the
+laid-out page - check it after adding a figure to a scene that had none, and look at
+every scene rather than a sample.
+
 Capturing is the production's job, not the studio's - it drives whatever product the
 video is about - but two rules travel with the component. **Measure, do not type**, and
 **refuse rather than guess**: a mark selector that matches nothing, or matches more than
