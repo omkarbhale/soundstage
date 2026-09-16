@@ -33,6 +33,32 @@ lit and plausible - it is simply not the one asked for. The fix is `!important` 
 three frozen properties, which is the one thing an inline style does not beat. **If you
 are looking at frozen frames and several of them are identical, this is what it was.**
 
+## Seek the timeline before rendering: `--freeze` cannot show the set performing
+
+`--freeze` stamps one framing's CAMERA into the page, and it is the only thing the format
+names - but the props in that page are all in their FIRST state, so it shows every
+landing with nothing having happened yet. It also cannot tell you the timeline runs at
+all: a JavaScript error in the tweens renders a still film and no guard sees it.
+
+Both are answered by seeking the real timeline in a browser, which costs a few seconds:
+
+```
+python3 - <<'EOF'
+src = open("<composition>/index.html", encoding="utf8").read()
+for t in (13.0, 63.0, 171.5, 259.0):
+    open(f"<composition>/.seek{t}.html", "w", encoding="utf8").write(src.replace(
+        "</body>", f'<script>window.addEventListener("load",()=>'
+        f'window.__timelines["main"].seek({t}))</script></body>'))
+EOF
+chrome-headless-shell --headless --disable-gpu --no-sandbox --window-size=1920,1080 \
+    --virtual-time-budget=4000 --screenshot=t13.png file://$PWD/<composition>/.seek13.0.html
+```
+
+Eight seeks on this piece returned eight different pictures with every declared change
+visibly in its END state - the count's bar shrunk to the share that was yours, the hand
+closed on the lever bank, the outline of the unfitted handle lit. That is the thing the
+format asks an author to look at and judge, and freezing cannot show it.
+
 ## Two hazards the aligner adds to the README's list
 
 Both hit real cues in one 800-word take, and neither is in README, "Write the cue in
