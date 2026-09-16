@@ -119,8 +119,11 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   and `set_check.py` + `script_check.py` for its guards. It owns narration as well as
   picture: the script is held to the set, and both the deck tells and the machine-made
   writing tells are refused by name before a take is spent. The format states every
-  threshold it enforces; do not restate them anywhere else. The slop vocabulary inside
-  `script_check.py` DRIFTS - read a current catalogue and update it there.
+  threshold it enforces; do not restate them anywhere else, and read
+  [`FIELD-NOTES.md`](formats/standing-set/FIELD-NOTES.md) beside it - what a real
+  production learned about how those thresholds interact, which is where the hours go.
+  The slop vocabulary inside `script_check.py` DRIFTS - read a current catalogue and
+  update it there.
 - **Render on a Linux-native path, never on `/mnt/c`** (README, "Where to render"). The engine
   writes its frame sequence inside the project directory, and on the Windows DrvFs mount those
   tens of thousands of small writes starve the workers: measured on one composition, 3.2 fps
