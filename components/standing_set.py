@@ -70,10 +70,12 @@ DOF_K = 7.0
 DOF_CAP_S = 1.7
 DOF_MAX = 15.0
 
-# Both spellings, because `<text font-size="56px">` is valid SVG and type in this
-# set is measured wherever it is written. Reading only the style declaration made
-# a correctly sized prop refuse for "carrying words and declaring no font-size".
-FONT_SIZE = re.compile(r"font-size\s*[:=]\s*[\"']?([\d.]+)px")
+# Both spellings, because SVG sizes type with an ATTRIBUTE and HTML with a CSS
+# declaration, and a `chart` or `diagram` prop is an <svg> with <text> in it.
+# Reading only `font-size:Npx` made the component refuse such a prop for
+# "carries words and declares no font-size" while its type was sized in front
+# of it, and hid those sizes from set_check.py's [ONE SIZE] and [NO SCALE].
+FONT_SIZE = re.compile(r"""font-size\s*[:=]\s*["']?\s*([\d.]+)\s*(?:px)?""")
 WORDS = re.compile(r"[A-Za-z]{2,}")
 # What a prop is MADE of, so a role is a claim about markup rather than a label.
 GEOM = re.compile(r"(?:width|height|left|top|background|transform|border|stroke|d)\s*[:=]")
@@ -91,7 +93,10 @@ def _shape(markup):
     Two props that hash the same are one prop drawn twice, whatever they are
     labelled and whatever size they are placed at."""
     m = re.sub(r">[^<]*<", "><", markup)
-    m = re.sub(r"font-size\s*[:=]\s*[\"']?[\d.]+px[\"']?;?", "", m)
+    # Mirrors FONT_SIZE, and has to: that pattern now READS the attribute
+    # spelling, so if this stripped only the style one, two copies of a drawing
+    # that differ by a font-size attribute would hash apart and walk past [TWINS].
+    m = re.sub(r"""font-size\s*[:=]\s*["']?\s*[\d.]+\s*(?:px)?["']?;?""", "", m)
     return hashlib.sha1(re.sub(r"\s+", " ", m).strip().encode()).hexdigest()[:12]
 
 

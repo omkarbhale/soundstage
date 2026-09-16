@@ -322,6 +322,13 @@ way a typed highlight is. [HAND-DRIVEN]
   does one thing is a transition. [ONE MOVE]
 - **Every move runs 0.6s to 3.5s.** Split a long travel into legs with a beat between.
   [PACE]
+- **A move's distance is measured in frames at the scale it ARRIVES at**, and that is
+  what makes a wide travel expensive: 0.9 frames at a scale of 0.35 is nearly five
+  thousand world units, and at 1.0 it is under two thousand. So the travels that cross
+  the set are the CLOSE ones. A piece that pulls back to a wide and then travels to the
+  next region is asking for a world several times bigger than the one it needs, and
+  finding that out after the props are placed means moving all of them. Decide the order
+  of the moves against this before anything stands anywhere. [NOT A TRAVEL]
 - **Every move starts on a word.** Quote the narration, never a number (ADR-0003), and
   quote it in transcript spelling (README, "Write the cue in transcript spelling").
   [NOT SPOKEN, AMBIGUOUS]
@@ -353,6 +360,12 @@ way a typed highlight is. [HAND-DRIVEN]
   frame waiting. After the last spoken word the film is allowed to be still, and it ends
   a measured two seconds later (README, "Ending a module"). [DEAD HOLD]
 
+  **Read that as the size of the job, not as a floor.** A piece has about as many holds
+  as it has framings, every one of them over 2s needs an act, and an act is one prop
+  doing one thing on its own beat. Twelve framings is twelve or thirteen acts on twelve
+  different props - not the three [STATIC] asks for, which is the least a set may contain
+  rather than the number a film will need.
+
 **So the acts are the budget, and they decide the shot list.** Three rules multiply, and
 the product is not written anywhere else: every hold of 2s or more before the last word
 needs an act, no two acts may overlap and none may run under a moving camera [TWO AT
@@ -361,9 +374,10 @@ sits in a line that NAMES the prop that moves - so only props the **script names
 carry one, and the dressing that [ALL STOPS] asks for buys nothing here.
 
 `acts = named props - surfaces + events`, and that is the most long holds a piece may
-have. **Count it before the script is finished**, not before the moves - the script is
-what decides which props may carry an act, so a piece that learns the number at build
-time can only back-fill, and a back-filled change is the limp one. Knowing it while
+have. **Count it before the script is finished**, not merely before the moves - the
+script is what decides which props may carry an act at all, so a piece that finds the
+shortfall afterwards can only invent changes for props that were never meant to have
+one, and those are the ones that look written for the guard. Knowing the number while
 writing means giving that many props a moment on purpose.
 
 **A gap of 0.8s to 2.0s is free.** It is under [DEAD HOLD]'s floor and at or over [NO
@@ -579,6 +593,18 @@ python3 script_check.py <composition>/index.html narration.txt <composition>/tra
        --freeze 3 frame3.html
    chrome-headless-shell --headless --window-size=1920,1080 \
        --screenshot=frame3.png file://$PWD/frame3.html
+   ```
+
+   **It freezes the CAMERA, and leaves every prop in the state its own tween starts in.**
+   A paused GSAP timeline renders each `fromTo`'s from-values the moment the tween is
+   built, so a frozen page shows the set *before* it performs: every change in its
+   "before" state, and a declared event not there at all. That is right for most framings
+   and useless for the one aimed at an event prop, where the subject of the shot is simply
+   absent and the still reads as an empty room. Force that one on to look at it, and
+   remember it is the only frame that needs it:
+
+   ```
+   #pr-<id> { opacity: 1 !important }
    ```
 
    At each one, answer out loud: is the near plane doing anything, or is the frame flat in

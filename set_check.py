@@ -140,7 +140,7 @@ class Doc(HTMLParser):
         eid = a.get("id") or ""
         style = a.get("style") or ""
         self.sizes += [float(v) for v in re.findall(r"font-size:\s*([\d.]+)px", style)]
-        self.families += re.findall(r"font-family:\s*([^;\"]+)", style)
+        self.families += re.findall(r"font-family\s*:\s*([^;}\n]+)", style)
         if "clip" in cls:
             self.clips.append((tag, eid))
         if "set-plate" in cls:
@@ -361,6 +361,17 @@ def freeze(raw, m, which, out):
         python3 set_check.py <index.html> <transcript.json> --freeze 3 frame3.html
         chrome-headless-shell --headless --window-size=1920,1080 \
             --screenshot=frame3.png file://$PWD/frame3.html
+
+    EVERY DECLARATION IS `!important`, and that is the whole reason this works.
+    The page still carries its timeline, and GSAP renders a `fromTo`'s FROM state
+    the moment the tween is created - on a paused timeline, before anything is
+    played. components/standing_set.py writes the camera as one `fromTo` per move
+    per plane, so simply loading the page leaves every plane wearing an INLINE
+    transform: the from state of the LAST camera tween, which is the second to
+    last framing. A plain stylesheet rule loses to an inline style, so without
+    `!important` this wrote the right numbers into the page and the browser drew
+    a different framing - the same one for every `--freeze n`, and a still that
+    looks perfectly composed either way.
     """
     shots, planes, frame = m["shots"], m["planes"], m["frame"]
     if not 0 <= which < len(shots):
@@ -369,13 +380,9 @@ def freeze(raw, m, which, out):
     css = []
     for name, depth in [("ground", 1.0)] + sorted(planes.items(), key=lambda kv: -kv[1]):
         x, y, sc, b = layer(depth, sh, planes, frame)
-        # !important, because the timeline is in the page and GSAP's fromTo renders
-        # its FROM state the moment it is created. Without this every frozen frame
-        # draws the LAST camera tween's start - a plausible-looking frame of the
-        # wrong framing, identical for every --freeze in the piece, and nothing
-        # about it reads as broken.
-        css.append(f"#sp-{name}{{transform:translate({x}px,{y}px) scale({sc})!important;"
-                   f"transform-origin:0 0!important;filter:blur({b}px)!important}}")
+        css.append(f"#sp-{name}{{transform:translate({x}px,{y}px) scale({sc}) !important;"
+                   f"transform-origin:0 0 !important;"
+                   f"filter:blur({b}px) !important}}")
     page = raw.replace("</style>", "\n" + "\n".join(css) + "\n</style>", 1)
     page = page.replace("<body>", f'<body style="margin:0;width:{frame[0]}px;'
                                   f'height:{frame[1]}px;overflow:hidden">', 1)
@@ -758,8 +765,11 @@ def main(argv):
     if re.search(r"<ul\b|<ol\b|&bull;|•|‣|▪", raw, re.I):
         fault("BULLETS", "the set contains a list - a bulleted list is the thing this format "
                          "exists instead of")
+    # The value may be quoted - `font-family:"Inter"` is ordinary CSS - and a
+    # class that stopped at a quote matched nothing there, so a document using
+    # two families reported one and [FAMILIES] refused it.
     fams = {f.strip().strip("'\"").split(",")[0].strip().strip("'\"").lower()
-            for f in doc.families + re.findall(r"font-family:\s*([^;}\"]+)", raw)}
+            for f in doc.families + re.findall(r"font-family\s*:\s*([^;}\n]+)", raw)}
     fams = {f for f in fams if f and f not in
             ("inherit", "initial", "unset", "sans-serif", "serif", "monospace", "system-ui")}
     lo, hi = R["families"]
