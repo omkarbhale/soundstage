@@ -490,9 +490,9 @@ This is what makes a piece sound filmed rather than assembled, and it is exact.
   it pulls focus to, because that is what it moves attention to. The same holds for a
   change and for an event: the cue sits in a line that names the thing that changes or
   arrives. [UNMOTIVATED]
-- **A name is not a line.** The line carrying a cue runs at least 8 words, and prop names
-  are at most 15% of the script. A script that is mostly labels is a caption track.
-  [NAME DROP]
+- **A name is not a line.** The line carrying a cue runs at least 8 words, and at most 15%
+  of lines may say nothing but the name of a thing. Naming what the camera finds is the job;
+  a line that only names it is a caption. [NAME DROP]
 - **Every prop the camera stops on is named** somewhere in the script. [UNNAMED]
 - **The voice stays in the room**: never more than 25 words without naming something in
   the set. [ABSTRACT RUN]

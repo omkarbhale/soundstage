@@ -325,11 +325,17 @@ def main(argv):
         if pid in named and not any(h[1] == pid for h in hits):
             fault("UNNAMED", f"the camera stops on {pid!r} and the script never calls it "
                              f"{by_id[pid]['name']!r} - the voice names what the camera goes to")
-    share = sum(len(named[p]) for _i, p in hits) / max(1, len(words))
-    if share > R["name_share"]:
-        fault("NAME DROP", f"{share * 100:.0f}% of the script is prop names - at most "
-                           f"{int(R['name_share'] * 100)}%. A script that is mostly labels is a "
-                           f"caption track")
+    # A label line: strip the stop words and nothing is left but the name of a thing.
+    # Counting total name WORDS instead would fight [ABSTRACT RUN], which demands the
+    # naming this would punish - what matters is whether a naming earns its line.
+    name_words = {w for ws2 in named.values() for w in ws2}
+    labels = [raw for raw, ws in lines
+              if ws and all(w in STOP or w in name_words for w in ws)]
+    if len(labels) > R["name_share"] * len(lines):
+        fault("NAME DROP", f"{len(labels)} of {len(lines)} lines say nothing but the name of a "
+                           f"thing ({labels[0][:40]!r}) - at most "
+                           f"{int(R['name_share'] * 100)}%. Naming what the camera finds is the "
+                           f"job; a line that only names it is a caption")
     prev = 0
     for i, _pid in hits + [(len(words), None)]:
         if i - prev > R["gap_words"]:
