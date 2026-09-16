@@ -140,7 +140,7 @@ class Doc(HTMLParser):
         eid = a.get("id") or ""
         style = a.get("style") or ""
         self.sizes += [float(v) for v in re.findall(r"font-size:\s*([\d.]+)px", style)]
-        self.families += re.findall(r"font-family:\s*([^;\"]+)", style)
+        self.families += re.findall(r"font-family\s*:\s*([^;}\n]+)", style)
         if "clip" in cls:
             self.clips.append((tag, eid))
         if "set-plate" in cls:
@@ -765,8 +765,11 @@ def main(argv):
     if re.search(r"<ul\b|<ol\b|&bull;|•|‣|▪", raw, re.I):
         fault("BULLETS", "the set contains a list - a bulleted list is the thing this format "
                          "exists instead of")
+    # The value may be quoted - `font-family:"Inter"` is ordinary CSS - and a
+    # class that stopped at a quote matched nothing there, so a document using
+    # two families reported one and [FAMILIES] refused it.
     fams = {f.strip().strip("'\"").split(",")[0].strip().strip("'\"").lower()
-            for f in doc.families + re.findall(r"font-family:\s*([^;}\"]+)", raw)}
+            for f in doc.families + re.findall(r"font-family\s*:\s*([^;}\n]+)", raw)}
     fams = {f for f in fams if f and f not in
             ("inherit", "initial", "unset", "sans-serif", "serif", "monospace", "system-ui")}
     lo, hi = R["families"]

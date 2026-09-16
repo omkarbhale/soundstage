@@ -70,7 +70,12 @@ DOF_K = 7.0
 DOF_CAP_S = 1.7
 DOF_MAX = 15.0
 
-FONT_SIZE = re.compile(r"font-size:\s*([\d.]+)px")
+# Both spellings, because SVG sizes type with an ATTRIBUTE and HTML with a CSS
+# declaration, and a `chart` or `diagram` prop is an <svg> with <text> in it.
+# Reading only `font-size:Npx` made the component refuse such a prop for
+# "carries words and declares no font-size" while its type was sized in front
+# of it, and hid those sizes from set_check.py's [ONE SIZE] and [NO SCALE].
+FONT_SIZE = re.compile(r"""font-size\s*[:=]\s*["']?\s*([\d.]+)\s*(?:px)?""")
 WORDS = re.compile(r"[A-Za-z]{2,}")
 # What a prop is MADE of, so a role is a claim about markup rather than a label.
 GEOM = re.compile(r"(?:width|height|left|top|background|transform|border|stroke|d)\s*[:=]")
