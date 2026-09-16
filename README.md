@@ -39,6 +39,31 @@ this project rejects.
 - [0009](docs/adr/0009-a-local-voice-and-a-local-aligner.md) - A local voice and a local aligner, behind the same two paths
 - [0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md) - A highlight is measured from the element, never drawn by hand
 - [0011](docs/adr/0011-captions-say-the-script-and-live-in-the-video.md) - Captions say the script, are timed by the transcript, and live in the video
+- [0012](docs/adr/0012-a-format-is-a-soundstage-owned-skill.md) - A format is a soundstage-owned skill, and it lives in `/formats/`
+
+## Formats
+
+The genre of a video - what it looks and sounds like - is a **format**, and each one is
+a skill in [`formats/`](formats/). A format defines one visual language completely enough
+that an agent reading it needs no further briefing about how the video should look.
+
+- [`formats/standing-set/`](formats/standing-set/SKILL.md) - one space, built before the
+  composition is written, and a camera that travels through it. Not a deck: props exist
+  from the first frame to the last and nothing replaces anything. Its geometry is
+  `components/standing_set.py` and its guard is `set_check.py`.
+
+`formats/` is the studio's, and the 26 skills under `.agents/skills/` are the engine's -
+vendored, version-locked in `skills-lock.json`, and overwritten by
+`hyperframes skills update`. Never put a format there. Each format is linked into
+`.claude/skills/<name>` so an agent finds it; if an engine update removes that link,
+re-create it - the format itself is in `formats/` and is safe. A format's name must be
+absent from the lock file, or two directories claim one command:
+
+```
+grep -q '"<name>"' skills-lock.json && echo TAKEN
+```
+
+[ADR-0012](docs/adr/0012-a-format-is-a-soundstage-owned-skill.md) has the argument.
 
 ## Making narration
 
@@ -398,6 +423,51 @@ video is about - but two rules travel with the component. **Measure, do not type
 **refuse rather than guess**: a mark selector that matches nothing, or matches more than
 one element, must fail the capture. The first match of an ambiguous selector is exactly
 the kind of answer that renders beautifully and points at the wrong control.
+
+## Proving a set
+
+A composition in the `standing-set` format makes claims a render cannot show are false:
+that the space is bigger than the frame, that its props were always there, that the
+camera lands somewhere, that the palette goes anywhere. A piece that breaks every one of
+them renders perfectly and looks like a deck with a camera move on it.
+
+```
+python3 set_check.py <composition>/index.html <composition>/transcript.json
+python3 set_check.py <composition>/index.html <composition>/transcript.json --why
+```
+
+`--why` prints where every prop is seen and how much ground each move crosses, which is
+what props are placed against: a prop's reach depends on the plane it stands on, and no
+framing shows what a move passes over.
+
+It re-derives every camera transform from the manifest the component stamped into the
+document - the same argument as [ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md),
+in a third medium - and refuses the rest by name. Run it after building and before
+rendering, beside `cue_check.py`, `id_check.py` and `figure_check.py`. The format states
+every threshold it enforces: [`formats/standing-set/SKILL.md`](formats/standing-set/SKILL.md).
+
+## Proving a script
+
+The `standing-set` format owns how a piece sounds as well as how it looks, because half
+the deck feeling lives in the words - and so does the machine-made feeling. A script that
+announces its own sections, or that is written in the shapes prose falls into when it has
+nothing to say, reads as a deck however well it is filmed.
+
+```
+python3 script_check.py <composition>/index.html narration.txt <composition>/transcript.json
+```
+
+It refuses the register (nothing announces itself), the shape of a line (a flat, parallel,
+padded rhythm), the bond to the set (the line that launches the camera names where it
+lands), and the tells of machine-made writing - negative parallelism, triplet lists,
+asserted significance, vague attribution, and the vocabulary that clusters in it. **Those
+tells drift**: the list inside the script rots, so read a current catalogue before trusting
+it and update the guard rather than working round it.
+
+It also refuses **the frame reading the line back**. A screen whose words are the words
+being spoken is the clearest sign of a machine-made video; a word landing on the frame as
+it is said is a real beat, so it is declared with `S.echo()` and rationed rather than
+banned. All of it runs on the script, so it costs no take: run it in the dry run.
 
 ## Captioning a module
 
