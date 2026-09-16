@@ -20,6 +20,32 @@ arithmetic and the paired-move answer, so it is a rule rather than a note. Recor
 only as provenance: two productions found it independently, from different pieces, and
 both of them found it at shot-list time rather than at planning time.
 
+## `--freeze` was drawing the wrong framing, and every frame looked right
+
+Fixed in `set_check.py`, recorded because of how it hid. `--freeze` stamps a framing's
+transforms into the page as CSS; the timeline is still in that page, and **GSAP renders a
+`fromTo`'s FROM state the moment the tween is created**, paused timeline or not. An inline
+style beats a stylesheet rule whatever its specificity, so every frozen frame drew the
+LAST camera tween's start. Measured here: 13 `--freeze` calls, 3 distinct images.
+
+Nothing about the output says so. Each frame is a real framing of the real set, composed,
+lit and plausible - it is simply not the one asked for. The fix is `!important` on the
+three frozen properties, which is the one thing an inline style does not beat. **If you
+are looking at frozen frames and several of them are identical, this is what it was.**
+
+## Two hazards the aligner adds to the README's list
+
+Both hit real cues in one 800-word take, and neither is in README, "Write the cue in
+transcript spelling":
+
+- **A two-word function phrase can come back as one different word.** `the empty slots`
+  aligned as `those slots`. It is not a drop - the audio says it - so `verify.py` reports
+  it as a replacement and moves on, and the cue quoting it simply never resolves.
+- **`too` comes back as `two`.** Same shape: a homophone the aligner picks the other way.
+
+The working rule is unchanged and is the README's: quote the part of the sentence that
+carries the meaning. Both of these were on function words at the edge of a phrase.
+
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
 [NO DETAIL] wants a prop setting type at 28px or less, and [NEVER READ] wants that type
