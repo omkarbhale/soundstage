@@ -48,6 +48,21 @@ BANNED_EASE = ("back", "elastic", "bounce")
 
 MOVES = ("travel", "push", "pull", "arc", "rack")
 
+# The house palette. Three places, dark, turning one way round the wheel, with accents
+# far enough apart that each region owns one. Real values because a format ships its
+# colours; a format that asks for them is a questionnaire.
+HOUSE = (
+    {"name": "ingress", "ground": "#0B1522", "ink": "#E8F1FF", "accent": "#5FE0C0"},
+    {"name": "work",    "ground": "#241019", "ink": "#FFEDF3", "accent": "#FF9A5C"},
+    {"name": "proof",   "ground": "#0F1B12", "ink": "#ECFAF0", "accent": "#7AB8FF"},
+)
+
+# The type scale, in world units. Seven steps over eleven times, so the camera has to
+# move to read the ends of it.
+TYPE = {"wall": 240, "figure": 190, "head": 96, "label": 56,
+        "body": 44, "code": 34, "fine": 22}
+FAMILY = {"text": "Inter", "code": "JetBrains Mono"}
+
 # Depth of field. `blur = K * |d - focus| / focus * min(CAP_S, s)`, capped: a plane
 # two depths off the focus at a close framing is unreadable, which is the point, and
 # the cap keeps it from smearing into a grey field.
@@ -103,6 +118,7 @@ class Set:
         self.plate_html = None
         self.events = []
         self.changes = []
+        self.echoes = []
         self.shots = []          # every framing, in order; the first is `open`
 
     # ------------------------------------------------------------- declaring
@@ -136,15 +152,13 @@ class Set:
         calls it, which is how the script is held to the picture."""
         if pid in self.props:
             raise SystemExit(f"prop {pid!r} is declared twice - every prop is one thing")
-        if role != "surface":
-            if not name or not (1 <= len(name.split()) <= 4):
-                raise SystemExit(f"prop {pid!r} needs a name of one to four words - the "
-                                 f"narrator has to be able to call it something")
-            taken = {p["name"]: i for i, p in self.props.items() if p.get("name")}
-            if name in taken:
-                raise SystemExit(f"prop {pid!r} is named {name!r}, which is already "
-                                 f"{taken[name]!r} - two things with one name cannot be told "
-                                 f"apart by the words")
+        if not name or not (1 <= len(name.split()) <= 4):
+            raise SystemExit(f"prop {pid!r} needs a name of one to four words - the narrator "
+                             f"has to be able to call it something, walls included")
+        taken = {p["name"]: i for i, p in self.props.items() if p.get("name")}
+        if name in taken:
+            raise SystemExit(f"prop {pid!r} is named {name!r}, which is already {taken[name]!r} "
+                             f"- two things with one name cannot be told apart by the words")
         if plane not in self.planes:
             raise SystemExit(f"prop {pid!r} sits on plane {plane!r}, which is not declared")
         x, y = (float(v) for v in at)
@@ -175,6 +189,7 @@ class Set:
                            "size": [w, h], "region": where, "html": html, "cls": cls,
                            "px": sizes, "words": len(WORDS.findall(_tags_off(html))),
                            "markup": markup, "name": name,
+                           "text": _tags_off(html).split()[:80],
                            "shape": _shape(html), "stencil": _stencil(html)}
         self.order.append(pid)
 
@@ -190,6 +205,14 @@ class Set:
         self._known(pid, "event")
         self._known(cause, "event cause")
         self.events.append({"prop": pid, "cause": cause, "cue": cue, "note": note})
+
+    def echo(self, pid, *, cue, note):
+        """A word on the frame landing on the same word in the mouth, on purpose.
+
+        Unmarked, that is the signature of a machine-made video. Declared, it is a beat,
+        and `script_check.py` caps how many a piece may spend."""
+        self._known(pid, "echo")
+        self.echoes.append({"prop": pid, "cue": cue, "note": note})
 
     def change(self, pid, *, cue, note):
         """A prop that is in a different state at the end of the module than at the
@@ -262,7 +285,7 @@ class Set:
                              f"{end:.2f}s - the camera stops before the film does")
         for s, when in zip(self.shots, times):
             s["at"] = when
-        for e in self.events + self.changes:
+        for e in self.events + self.changes + self.echoes:
             e["at"] = self._resolve(t, e["cue"])
         self.end = float(end)
         return self._css(), self._html(), self._js()
@@ -455,7 +478,7 @@ class Set:
                       for p in self.order],
             "plate": (len(WORDS.findall(_tags_off(self.plate_html)))
                       if self.plate_html is not None else None),
-            "events": self.events, "changes": self.changes,
+            "events": self.events, "changes": self.changes, "echoes": self.echoes,
             "shots": [{"kind": s["kind"], "on": s["on"], "cx": s["cx"], "cy": s["cy"],
                        "s": s["s"], "off": s.get("off", [0.0, 0.0]),
                        "focus": s["focus"], "cue": s["cue"],

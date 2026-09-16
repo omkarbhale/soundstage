@@ -205,7 +205,7 @@ several of them at once.
 
 - **At least 12 props, in at least 4 roles**, and at most **40%** of them specimens.
   [THIN SET, ONE NOTE, ALL WORDS]
-- **Everything but a `surface` has a name**, one to four words and its own, because the
+- **Every prop has a name**, one to four words and its own, walls included, because the
   narration is held to it. `standing_set.py` refuses an unnamed prop at build.
 - **Every prop is its own drawing.** Two props whose markup matches once the words and
   their sizes are stripped are one prop placed twice; at most three may be cut from one

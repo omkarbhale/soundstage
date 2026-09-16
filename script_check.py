@@ -33,7 +33,15 @@ R = {
     "long_line": 30, "short_line": 8, "long_enough": 22, "spread": 5.0,
     "short_share": 0.15, "short_run": 5, "same_open": 0.20, "open_run": 3,
     "gap_words": 25, "name_share": 0.15, "first_sentence": 8, "echo": 6,
+    "mirror": 0.35, "on_screen": 0.06, "echoes": 2,
 }
+
+# Words too common to mean anything when the frame and the voice share them.
+STOP = set("""a an and are as at be been but by can could do does for from had has have he
+her him his how i if in into is it its me my no nor not of off on once one only or other
+our out over own same she should so some such than that the their them then there these
+they this those through to too under until up was we were what when where which while who
+why will with would you your""".split())
 
 # A deck read aloud, wherever it appears.
 DECK = [
@@ -95,6 +103,18 @@ def sentences(text):
     return out
 
 
+def seen_frac(prop, shot, planes, frame):
+    """How much of the frame a prop covers under one framing."""
+    fw, fh = frame
+    s = shot["s"] / planes[prop["plane"]]
+    x = (prop["at"][0] - shot["cx"]) * s + fw / 2
+    y = (prop["at"][1] - shot["cy"]) * s + fh / 2
+    w, h = prop["size"][0] * s, prop["size"][1] * s
+    ix = max(0.0, min(fw, x + w) - max(0.0, x))
+    iy = max(0.0, min(fh, y + h) - max(0.0, y))
+    return ix * iy / (fw * fh)
+
+
 def find(seq, want):
     """Every index where `want` starts in `seq`."""
     if not want:
@@ -103,9 +123,11 @@ def find(seq, want):
 
 
 def main(argv):
-    if len(argv) != 2:
-        sys.exit("usage: script_check.py <composition>/index.html narration.txt")
-    path, spath = argv
+    if len(argv) not in (2, 3):
+        sys.exit("usage: script_check.py <composition>/index.html narration.txt "
+                 "[<composition>/transcript.json]")
+    path, spath = argv[0], argv[1]
+    tpath = argv[2] if len(argv) > 2 else None
     doc = Doc()
     doc.feed(open(path, encoding="utf8").read())
     if doc.manifest is None:
@@ -219,12 +241,63 @@ def main(argv):
             fault("NAME DROP", f"{what} lands in a {len(ws)}-word line, {raw[:40]!r} - a name "
                                f"on its own is a caption; the line says something about it")
 
-    for sh in shots[1:]:
-        bond(sh["cue"], sh["on"] or [], f"the {sh['kind']} move")
+    carried = []
+    for sh in shots:
+        carried.append(sh["on"] or (carried[-1] if carried else []))
+    for sh, on in list(zip(shots, carried))[1:]:
+        bond(sh["cue"], on, f"the {sh['kind']} move")
     for c in changes:
         bond(c["cue"], [c["prop"]], f"the change {c['note']!r}")
     for e in events:
         bond(e["cue"], [e["prop"]], f"the event {e['note']!r}")
+
+    # --- the frame does not say what the voice is saying ----------------------
+    # The signature of a machine-made video: the screen restating the sentence. The
+    # picture shows what the words cannot, the words say what the picture cannot, and
+    # the overlap between them is measured rather than trusted. A prop's NAME is
+    # discounted, because naming what the camera is on is required elsewhere; what is
+    # refused is the rest of the line appearing on the wall.
+    if tpath:
+        spoken = json.load(open(tpath, encoding="utf8"))
+        tok = [norm(w["text"]) for w in spoken]
+        if len(m.get("echoes", [])) > R["echoes"]:
+            fault("ECHO", f"{len(m['echoes'])} declared echoes - at most {R['echoes']}. A word "
+                          f"landing on the frame as it is spoken is a beat because it is rare")
+        marked = {e["prop"] for e in m.get("echoes", [])}
+        i = 0
+        worst = None
+        for raw, ws in lines:
+            j = min(i + len(ws), len(tok))
+            if i >= len(tok):
+                break
+            t0 = spoken[i]["start"]
+            sh = [x for x in shots if x["at"] <= t0 + 1e-6]
+            sh = sh[-1] if sh else shots[0]
+            here = [p for p in m["props"]
+                    if seen_frac(p, sh, m["planes"], m["frame"]) >= R["on_screen"]]
+            on_frame = set()
+            for p in here:
+                if p["id"] in marked:
+                    continue
+                on_frame |= {norm(w) for w in p.get("text", [])}
+            on_frame -= {""}
+            said = [w for w in ws if w not in STOP]
+            for p in here:
+                for nm in [named.get(p["id"], [])]:
+                    if nm and find(ws, nm):
+                        said = [w for w in said if w not in nm]
+            if said:
+                hit = [w for w in said if w in on_frame]
+                share = len(hit) / len(said)
+                if share > R["mirror"] and (worst is None or share > worst[0]):
+                    worst = (share, raw, hit)
+            i = j
+        if worst:
+            fault("ECHO", f"{worst[0] * 100:.0f}% of a line is also written on the frame while "
+                          f"it is spoken - {', '.join(sorted(set(worst[2]))[:6])} - in "
+                          f"{worst[1][:50]!r}. The frame shows what the words cannot say; a "
+                          f"frame that reads the line back is the thing that looks machine-made. "
+                          f"Declare it with S.echo() if it is a beat you meant")
 
     # --- how it opens and how it ends ----------------------------------------
     head = lines[0][1] + (lines[1][1] if len(lines) > 1 else [])

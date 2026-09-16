@@ -56,6 +56,7 @@ R = {                              # every threshold the format states, in one p
     "move_px": 0.015, "move_pct": 50.0, "move_scale": 0.15, "move_rot": 6.0,
     "move_alpha": 0.5, "move_lum": 0.10, "move_hue": 25.0, "move_size_pct": 25.0,
     "prop_ink": 4.5, "channel_share": 0.5, "same_kind_run": 2, "stencil_share": 3,
+    "glyph_share": 0.15, "material_share": 0.30,
     "prop_words": 60, "plate_words": 4, "lum_step": 0.04, "hue_step": 25.0,
     "hue_turn": 70.0,
     "sizes": 6, "size_ratio": 6.0, "big_px": 200.0, "small_px": 28.0,
@@ -434,6 +435,19 @@ def main(argv):
     if len(roles) < R["roles"]:
         fault("ONE NOTE", f"{len(roles)} role(s) ({', '.join(sorted(roles))}) - a set holds at "
                           f"least {R['roles']} different things")
+    # This format is not illustration-led. The set is built out of the real material -
+    # screens, code, measured figures, documents - and icons are the seasoning.
+    glyphs = sum(1 for p in props if p["role"] == "glyph")
+    if glyphs > R["glyph_share"] * n:
+        fault("DRAWN NOT SHOWN", f"{glyphs} of {n} props are glyphs - at most "
+                                 f"{int(R['glyph_share'] * 100)}%. An icon stands for a thing; "
+                                 f"this format shows the thing")
+    material = sum(1 for p in props if p["role"] in ("screen", "code", "chart", "diagram"))
+    if material < R["material_share"] * n:
+        fault("DRAWN NOT SHOWN", f"{material} of {n} props carry real material (a screen, code, "
+                                 f"a measured figure, a diagram) - at least "
+                                 f"{int(R['material_share'] * 100)}%, or the set is decoration "
+                                 f"with labels on it")
     spec = sum(1 for p in props if p["role"] == "specimen")
     if spec > R["specimen_share"] * n:
         fault("ALL WORDS", f"{spec} of {n} props are specimens - a set made of type is a deck "
