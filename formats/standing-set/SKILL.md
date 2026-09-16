@@ -358,9 +358,13 @@ the product is not written anywhere else: every hold of 2s or more before the la
 needs an act, no two acts may overlap and none may run under a moving camera [TWO AT
 ONCE], and a prop carries **one** change. A change is also bonded to the words - its cue
 sits in a line that NAMES the prop that moves - so only props the **script names** can
-carry one, and the dressing that [ALL STOPS] asks for buys nothing here. Count the acts
-before writing the moves: `acts = named props - surfaces + events`, and that is the most
-long holds the piece may have.
+carry one, and the dressing that [ALL STOPS] asks for buys nothing here.
+
+`acts = named props - surfaces + events`, and that is the most long holds a piece may
+have. **Count it before the script is finished**, not before the moves - the script is
+what decides which props may carry an act, so a piece that learns the number at build
+time can only back-fill, and a back-filled change is the limp one. Knowing it while
+writing means giving that many props a moment on purpose.
 
 **A gap of 0.8s to 2.0s is free.** It is under [DEAD HOLD]'s floor and at or over [NO
 LANDING]'s, so it needs no act and does not count toward a run of three. That is how a
