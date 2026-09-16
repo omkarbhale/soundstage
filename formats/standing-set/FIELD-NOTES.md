@@ -155,9 +155,18 @@ minutes of rendering that a deck would not pay - before any contention. With a s
 render on the same box it ran at about one frame a second.
 
 This is the price of the thing the format is for, so **budget for it rather than turning
-it down**: the depth is what makes a frame three distances at once. Practical notes -
-render when nothing else has the machine, and treat the seek-and-screenshot check above
-as the way to judge the look, because it costs seconds where a render costs an hour.
+it down**: the depth is what makes a frame three distances at once. Two practical notes.
+
+**One render at a time.** Sharing the box with a second render did not merely halve the
+rate - it took the machine into memory pressure and the first casualty was a render.
+Measured: all three capture workers died together with `Protocol error
+(Page.captureScreenshot): Target closed`, the engine spent its one transient retry on a
+fresh browser, and the run was lost at frame 900 of 7,904. Wait the other one out.
+Detach the render too (`setsid`), so that a supervisor killing a wrapper for memory does
+not take an hour of capture with it.
+
+**Judge the look by seeking and screenshotting**, not by rendering. It costs seconds
+where a render costs an hour, and it shows the same frames.
 
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
