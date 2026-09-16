@@ -18,6 +18,7 @@ into `SKILL.md` and delete it from here.
 [An offset can turn a push into a travel, and on a far wide it is enormous](#an-offset-can-turn-a-push-into-a-travel-and-on-a-far-wide-it-is-enormous)  
 [Far props lean in from the next room, and a tall far wall frames very wide](#far-props-lean-in-from-the-next-room-and-a-tall-far-wall-frames-very-wide)  
 [Budget for the render: the depth of field is a CSS blur on every frame](#budget-for-the-render-the-depth-of-field-is-a-css-blur-on-every-frame)  
+[[EMPTY TRAVEL] counts bounding boxes, and line art is mostly not there](#empty-travel-counts-bounding-boxes-and-line-art-is-mostly-not-there)  
 
 **Looking at it and listening to it**  
 [`--freeze` was drawing the wrong framing, and every frame looked right](#--freeze-was-drawing-the-wrong-framing-and-every-frame-looked-right)  
@@ -163,6 +164,25 @@ not take an hour of capture with it.
 
 **Judge the look by seeking and screenshotting**, not by rendering. It costs seconds
 where a render costs an hour, and it shows the same frames.
+
+## [EMPTY TRAVEL] counts bounding boxes, and line art is mostly not there
+
+The rule asks that props which are not the backdrop cover 12% of the frame a quarter,
+half and three quarters of the way through every move, and it measures that over a grid
+of each prop's projected BOX. A set drawn the way this format asks - architecture, drawn
+diagrams, type as objects - is largely strokes on a dark ground, so a prop's box can be
+20% of the frame while the ink in it is one or two per cent.
+
+Seen in the finished file: the midpoint of a close push passed the rule comfortably and
+still reads as an almost empty frame - one rail, one clipped word. It is a second and a
+half of a four-minute piece with the camera moving through it, so it is not worth
+re-rendering for, but the rule did not catch it and would not have.
+
+Two things follow. **Judge the flights by eye, not by the guard** - sample the finished
+file at each move's midpoint (every act too; the recipe is above) and look. And **the
+close moves are where this bites**: at a scale near 1.0 the frame holds barely a
+prop-and-a-half, so a push that ends tight has a thin middle by construction. Keep those
+short.
 
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
