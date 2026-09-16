@@ -63,7 +63,7 @@ from difflib import SequenceMatcher
 STYLE_KEYS = {
     "line_chars": "characters a line",
     "lines": "lines a cue",
-    "cue_seconds": "[shortest, longest] a cue may be on screen",
+    "cue_seconds": "[the shortest a cue is held to where the next one leaves room, the longest it may be on screen]",
     "hold_seconds": "how long a cue may run past its last word into the pause after it",
     "gap_seconds": "the visible gap between one cue going and the next arriving",
     "min_break_chars": "the shortest cue worth breaking a clause for",
@@ -326,7 +326,7 @@ def render(groups, style, offset):
     as a flicker - and always with a visible gap before the next one arrives."""
     lo, hi = style["cue_seconds"]
     hold, gap = style["hold_seconds"], style["gap_seconds"]
-    rows = []
+    rows, prev_end = [], None
     for n, g in enumerate(groups):
         start = g[0]["start"] + offset
         # The hold is room for the last syllable to land, not licence to outstay the
@@ -335,8 +335,17 @@ def render(groups, style, offset):
         nxt = groups[n + 1][0]["start"] + offset if n + 1 < len(groups) else None
         if nxt is not None:
             end = min(end, nxt - gap)
+        # A sentence tail whose next cue follows immediately would be on screen for a
+        # fraction of a second - a flash, not a caption. Where merging it back could
+        # not help (the two together do not lay out), it is brought ON EARLIER instead,
+        # as far back as the gap after the previous cue allows. A caption arriving a
+        # beat early reads; one that is gone before it is seen does not.
+        if end - start < lo:
+            floor = prev_end + gap if prev_end is not None else offset
+            start = max(floor, min(start, end - lo))
         rows.append({"n": n + 1, "start": start, "end": max(end, start + gap),
                      "text": wrap(g, style)})
+        prev_end = rows[-1]["end"]
     return rows
 
 

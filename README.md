@@ -437,8 +437,11 @@ cues; a faster one cannot, and no setting downstream can fix it without going ou
 
 - `line_chars` / `lines` - 42 and 2 is what broadcast subtitling settled on and what a
   viewer reads without tracking back. Go narrower if the frame is busy under the caption.
-- `cue_seconds` - the floor stops a cue flashing past; the ceiling stops one outstaying
-  its sentence. Aim for most cues to land in the middle of that range.
+- `cue_seconds` - the ceiling stops a cue outstaying its sentence and is enforced. The
+  floor is what a cue is held to *where the cue after it leaves room*: a two-word sentence
+  tail whose next cue follows immediately is merged back or brought on earlier, and where
+  neither is possible it stays short rather than overlapping. Readability there is
+  `hard_cps`'s job, not the floor's - three characters in under a second is not a flash.
 - `hold_seconds` / `gap_seconds` - a cue that vanishes on the last syllable reads as a
   flicker, and two cues with no gap between them read as one.
 - `min_break_chars` - the shortest cue worth breaking a clause for. A boundary two words

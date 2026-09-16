@@ -57,7 +57,7 @@ import unicodedata
 STYLE_KEYS = {
     "line_chars": "characters a line",
     "lines": "lines a cue",
-    "cue_seconds": "[shortest, longest] a cue may be on screen",
+    "cue_seconds": "[the shortest a cue is held to where the next one leaves room, the longest it may be on screen]",
     "fast_cps": "characters a second above which a cue is reported as fast",
     "hard_cps": "characters a second above which a cue is refused as unreadable",
     "language": "the language tag the muxed track must carry",
