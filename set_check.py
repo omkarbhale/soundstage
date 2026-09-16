@@ -196,16 +196,16 @@ def during(a, b, p):
             "s": s, "focus": b["focus"], "on": b["on"]}
 
 
-def covered(shot, props, planes, frame, skip=("surface",)):
+def covered(shot, props, planes, frame, skip=("surface",), keep=None):
     """How much of the frame carries something that is not the backdrop.
 
     Counted over a grid rather than summed, so stacking three props in one place
-    does not read as three times the frame."""
+    does not read as three times the frame. `keep` narrows it to a set of props."""
     fw, fh = frame
     gx, gy = 64, 36
     cells = set()
     for p in props:
-        if p["role"] in skip:
+        if p["role"] in skip or (keep is not None and p["id"] not in keep):
             continue
         x, y, w, h = box_of(p, shot, planes, frame)
         for i in range(max(0, int(x / fw * gx)), min(gx, math.ceil((x + w) / fw * gx))):
@@ -650,8 +650,10 @@ def main(argv):
         subject.append(last_on)
     for sh, on in zip(shots, subject):
         home = {by_id[pid]["plane"] for pid in on} or {sh["focus"]}
-        if not any(p["plane"] not in home and seen(p, sh, planes, frame) >= R["layer_seen"]
-                   for p in props):
+        # Everything standing at another distance, taken together: a wide shot is
+        # layered by its whole depth rather than by one big prop in it.
+        others = {p["id"] for p in props if p["plane"] not in home}
+        if covered(sh, props, planes, frame, skip=(), keep=others) < R["layer_seen"]:
             fault("FLAT FRAME", f"the framing on {sh['cue'] or 'the opening'!r} carries nothing "
                                 f"from another plane at {R['layer_seen'] * 100:.0f}% of the "
                                 f"frame - one object against a background is a slide, whatever "
