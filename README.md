@@ -35,6 +35,8 @@ this project rejects.
 - [0005](docs/adr/0005-openai-for-speech.md) - OpenAI for speech, though the engine does not support it
 - [0006](docs/adr/0006-the-project-is-called-soundstage.md) - The project is called soundstage
 - [0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) - The narration guards live in the studio
+- [0008](docs/adr/0008-a-re-voice-is-fitted-to-the-old-track.md) - A re-voice is fitted to the old track, line by line
+- [0009](docs/adr/0009-a-local-voice-and-a-local-aligner.md) - A local voice and a local aligner, behind the same two paths
 
 ## Making narration
 
@@ -111,7 +113,7 @@ drops a part still produces a playable file.
 
 ## Speaking without an account
 
-`tts.mjs` and `transcribe.py` each speak two engines behind one path (ADR-0008). OpenAI is
+`tts.mjs` and `transcribe.py` each speak two engines behind one path (ADR-0009). OpenAI is
 the default while a key works; the local pair needs no key, no network and no account, and
 runs on CPU.
 
@@ -159,6 +161,55 @@ It rewrites what is **spoken**, never the script, so `verify.py` still diffs the
 narration against the real audio. Match it against a reference: synthesise the name, align
 it, and compare the spelling the aligner returns with the one it returns for audio you know
 is right.
+
+## Re-voicing a video that already exists
+
+Replacing the reader on a finished video runs the opposite way to everything above: the
+cut cannot be paced to a new voice, so the old track is the score
+([ADR-0008](docs/adr/0008-a-re-voice-is-fitted-to-the-old-track.md)). The picture is never
+touched - the video stream is stream-copied and the new track is built to the old one's
+length.
+
+```
+python3 speech_runs.py old-voice.wav                      # the lines of the old track
+python3 dub_script.py  old-voice.wav script/ --vocab v.txt  # each line, from its own audio
+python3 dub_speak.py   script/ clips/ --instructions voice.txt --speed 1.27
+python3 dub.py         old-voice.wav clips/ new-voice.wav --report   # the fit, first
+python3 dub.py         old-voice.wav clips/ new-voice.wav
+```
+
+Read `--report` before building. Every line's tempo is the difference between two speaking
+rates on the same words, so corrections clustering off 1.0 mean the take is paced wrong as
+a whole - and the fix for that is `dub_speak.py --speed`, which changes the model's own
+delivery, not a harder time-stretch afterwards. A line past the limit is refused rather
+than squeezed audibly; shorten it instead. The three worst-fitting lines of one track were
+the three naming a part number, because the speech model read every zero of an identifier
+the narrator had said in about a second.
+
+`--vocab` is a file of the proper nouns and part numbers **taken off the screen**. A
+transcript is normally allowed its own spelling of a name, because a reader never sees it;
+this one is read back out by a speech model, so a name heard wrong becomes the finished
+video saying the wrong word.
+
+To mend one line later, edit its text and re-read only it:
+
+```
+python3 dub_speak.py script/ clips/ --only 7
+```
+
+It takes the voice, model, speed and instructions from `clips/take.json` and refuses to be
+given them again. The rest of the take was read at one setting, and a line read at another
+sounds like a different person in a different room - one sentence in four minutes.
+
+The last step is not one of these scripts. The new track is the old one's length, so the
+picture needs nothing done to it and is copied across rather than encoded again:
+
+```
+ffmpeg -i old.mp4 -i new-voice.wav -map 0:v -map 1:a -c:v copy revoiced.mp4
+```
+
+`dub.py` proves the finished track lands on the old grid before it is worth muxing, but
+nothing here can check pronunciation. Give a re-voice a human ear before it ships.
 
 ## Cueing a reveal
 
