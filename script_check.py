@@ -155,6 +155,18 @@ def seen_frac(prop, shot, planes, frame):
     return ix * iy / (fw * fh)
 
 
+def text_of(cue):
+    """The words of a cue, whether or not it also names which occurrence it means."""
+    return cue[0] if isinstance(cue, (list, tuple)) and cue else str(cue)
+
+
+def shown(cue):
+    """A cue as it reads back to the author who wrote it."""
+    if isinstance(cue, (list, tuple)) and len(cue) > 1:
+        return f"{cue[0]!r} (occurrence {cue[1]})"
+    return repr(text_of(cue))
+
+
 def find(seq, want):
     """Every index where `want` starts in `seq`."""
     if not want:
@@ -345,22 +357,35 @@ def main(argv):
             break
         prev = i
 
-    def line_of(phrase):
-        want = [norm(w) for w in str(phrase).split() if norm(w)]
+    def line_of(cue):
+        """The line carrying the occurrence this cue names.
+
+        A cue is a phrase, or a phrase AND the occurrence meant - which is exactly what
+        `set_check.py`'s AMBIGUOUS fault tells an author to write when a phrase repeats
+        (README, "Cueing a reveal"). Reading only the phrase would check the bond
+        against the wrong sentence; reading only the first would make the two guards
+        disagree about a move the format itself prescribes."""
+        want = [norm(w) for w in text_of(cue).split() if norm(w)]
+        nth = cue[1] if isinstance(cue, (list, tuple)) and len(cue) > 1 else 1
+        passed = 0
         for raw, ws in lines:
-            if find(ws, want):
-                return raw, ws
+            hits = find(ws, want)
+            if hits:
+                if passed + len(hits) >= nth:
+                    return raw, ws
+                passed += len(hits)
         return None
 
     def bond(cue, who, what):
+        said = shown(cue)
         got = line_of(cue)
         if got is None:
-            fault("NOT SPOKEN", f"{what} is cued on {cue!r}, which is not in the script")
+            fault("NOT SPOKEN", f"{what} is cued on {said}, which is not in the script")
             return
         raw, ws = got
         if not any(find(ws, named[p]) for p in who if p in named):
             names = ", ".join(repr(by_id[p]["name"]) for p in who if p in named)
-            fault("UNMOTIVATED", f"{what} is cued on {cue!r}, in a line that never names "
+            fault("UNMOTIVATED", f"{what} is cued on {said}, in a line that never names "
                                  f"{names or 'what it is about'} - the words that launch the "
                                  f"camera name where it lands: {raw[:60]!r}")
         elif len(ws) < R["first_sentence"]:
