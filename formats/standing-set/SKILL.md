@@ -353,6 +353,23 @@ way a typed highlight is. [HAND-DRIVEN]
   frame waiting. After the last spoken word the film is allowed to be still, and it ends
   a measured two seconds later (README, "Ending a module"). [DEAD HOLD]
 
+**So the acts are the budget, and they decide the shot list.** Three rules multiply, and
+the product is not written anywhere else: every hold of 2s or more before the last word
+needs an act, no two acts may overlap and none may run under a moving camera [TWO AT
+ONCE], and a prop carries **one** change. A change is also bonded to the words - its cue
+sits in a line that NAMES the prop that moves - so only props the **script names** can
+carry one, and the dressing that [ALL STOPS] asks for buys nothing here. Count the acts
+before writing the moves: `acts = named props - surfaces + events`, and that is the most
+long holds the piece may have.
+
+**A gap of 0.8s to 2.0s is free.** It is under [DEAD HOLD]'s floor and at or over [NO
+LANDING]'s, so it needs no act and does not count toward a run of three. That is how a
+piece buys camera movement it cannot afford in acts: **pair** two moves, cueing the
+second a beat after the first - usually off the next sentence - so the camera crosses in
+two legs and lands once. It is a real shape, not a dodge, and it is the answer to a shot
+list that will not fit the budget. The others are fewer moves, or a script that names
+more of the set. Inventing a change to clear the number is the one wrong answer.
+
 # 7. The set performs
 
 - **Props do not arrive.** Everything is there from the first frame; the camera finds it.

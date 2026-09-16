@@ -12,38 +12,13 @@ into `SKILL.md` and delete it from here.
 
 ---
 
-## The act budget caps the number of camera holds, and that is what sets prop count
+## The act budget caps the number of camera holds
 
-This is the single most useful thing to know before writing a shot list, and no
-threshold in `SKILL.md` says it.
-
-Three rules multiply:
-
-- every hold of `long_hold` (2s) or more **before the last spoken word** has to carry a
-  declared event or change [DEAD HOLD];
-- no two acts may overlap, and none may run while the camera moves [TWO AT ONCE];
-- a prop carries **one** change, and events are capped at 25% of the props.
-
-So the number of long holds a piece may have is capped by the number of acts, and the
-number of acts is capped by the number of props **the script names** - `script_check.py`
-requires a change's cue to sit in a line that names the prop that changes, so a prop the
-narration never mentions cannot carry one. Dressing props are free for [ALL STOPS] and
-useless for [DEAD HOLD].
-
-The arithmetic, for a piece of length `T` with `M` moves:
-
-    holds = M + 1
-    long holds needing an act = holds - (gaps under 2s)
-    acts available = (named, non-surface props) + (events)
-
-**A gap between 0.8s and 2.0s is free**: under 2.0s it needs no act, and at or above
-0.8s it does not count toward [NO LANDING]'s run of three. So a piece buys camera
-movement it cannot afford in acts by **pairing** moves - cueing the second a beat after
-the first, usually from the next sentence - and landing once for the pair. That is a
-legitimate shape, not a dodge: the camera crosses in two legs.
-
-If a shot list will not fit the act budget, the choices are: fewer moves, more pairs, or
-a script that names more of the set. Not "more props" - unnamed props do not help.
+This was the first thing the first real piece hit and the most useful thing to know
+before writing a shot list. It is now stated in `SKILL.md` under "Rest", with the
+arithmetic and the paired-move answer, so it is a rule rather than a note. Recorded here
+only as provenance: two productions found it independently, from different pieces, and
+both of them found it at shot-list time rather than at planning time.
 
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
