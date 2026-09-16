@@ -25,7 +25,7 @@ into `SKILL.md` and delete it from here.
 
 **Cues, and what the aligner does to them**  
 [Two hazards the aligner adds to the README's list](#two-hazards-the-aligner-adds-to-the-readmes-list)  
-[`cue_check.py` reports zero cues on a set, and that is not a hole](#cuecheckpy-reports-zero-cues-on-a-set-and-that-is-not-a-hole)  
+[`cue_check.py` reports zero cues on a set, and that is not a hole](#cue_checkpy-reports-zero-cues-on-a-set-and-that-is-not-a-hole)  
 
 **Sharp edges since fixed**  
 [Type is measured in both spellings of font-size now](#type-is-measured-in-both-spellings-of-font-size-now)  
