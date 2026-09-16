@@ -29,12 +29,32 @@ Record here only project-intrinsic agent knowledge - build, test, release, archi
   and the frame looks finished either way. What it flags is ambiguity, not a proven defect:
   confirm against the render before touching a timing, then name the occurrence you
   found - the first match is usually the intended one.
-- **A reveal must have exactly one element to land on.** Run `id_check.py` (README, "Proving
-  a reveal lands") after building and before rendering. A duplicate `id` resolves to the first
-  match, so one element is tweened twice and the other is on screen from its scene's first
-  frame; a tween whose selector matches nothing does the same. `cue_check.py` still passes and
-  the scene's settled frame is identical either way, so only a frame sampled between the two
-  cues shows it.
+- **A reveal must have exactly one element to land on, inside a clip that is on screen.**
+  Run `id_check.py` (README, "Proving a reveal lands") after building and before rendering.
+  A duplicate `id` resolves to the first match, so one element is tweened twice and the
+  other is on screen from its scene's first frame; a tween whose selector matches nothing
+  does the same. It also refuses a clip with no duration - **a scene table listed out of
+  spoken order** gave one clip `data-duration="-63.59"` and let another overlay ninety-seven
+  seconds of its module, because each scene's end comes from the NEXT table entry's start.
+  `cue_check.py` passes through all of it and the settled frame is identical either way.
+- **A screenshot shows WHERE, and a highlight is measured, never typed.** `components/figure.py`
+  is the component (README, "Showing a screen, so someone can find it again"); `figure_check.py`
+  proves after building that every ring on the frame is still the box the capture measured off
+  the element. A tight crop of a button teaches nothing about position, so the frame carries
+  the page and a magnified inset goes BESIDE the wide shot, never instead of it. A hand-typed
+  or stale box rings the control next to the one the narration named and the frame looks
+  finished either way ([ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md)).
+- **Captions say the SCRIPT and are timed by the TRANSCRIPT, and they live in the video.**
+  `captions.py --into` muxes a soft track; there is no sidecar, and burned-in is refused
+  because it would sit on a figure's callouts. Never caption from the transcript's own text -
+  the aligner misheard `Screen` as `Scream` in this corpus, and a caption is read rather than
+  matched. Prove the track in the FINISHED file with `caption_check.py --in`, because a
+  subtitle track is off by default and a failed mux ships silently; re-run it after anything
+  that re-encodes or trims, which drops the track without a word. `join.py` re-assembles the
+  parts' tracks onto a join for that reason. **No caption style lives in this repo**: line
+  length, cue length, reading rate and the phrases that must never be split all arrive in
+  `--style` and a missing one refuses by name - the README teaches how to choose them
+  ([ADR-0011](docs/adr/0011-captions-say-the-script-and-live-in-the-video.md)).
 - **Prove a composition before you spend the narration on it.** A composition reads its
   transcript, so nothing about it runs until the audio exists - which hides a generator that
   raises, an ambiguous cue and a duplicate id until the expensive half is already paid for.

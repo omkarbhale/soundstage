@@ -15,6 +15,13 @@
 #   or typo the id in the tween, and GSAP animates an empty set. The element is
 #   again on screen from the start of its scene.
 #
+#   A CLIP THAT IS NEVER ON SCREEN. Same failure one level up, and measured in this
+#   repo's own corpus rather than imagined: a scene table listed out of spoken order
+#   gave one clip `data-duration="-63.59"` and let another overlay ninety-seven
+#   seconds of the module. Every reveal inside the negative clip had exactly one
+#   element to land on and none of them were ever seen. A clip with no duration has
+#   no reveals, so it belongs to this guard.
+#
 # Both fail exactly the way the narration guards do, which is why this lives here
 # beside them (ADR-0007): nothing errors, nothing warns, cue_check.py still passes
 # because every cue phrase still resolves, and the SETTLED frame of the scene is
@@ -49,6 +56,13 @@ dupes = {i: n for i, n in collections.Counter(ids).items() if n > 1}
 CALL = re.compile(r'\btl\.(?:fromTo|from|to|set|add)\(\s*"([^"]+)"')
 targets = sorted(set(CALL.findall(doc)))
 
+# Every clip, and how long it is on screen for. Read off the markup because that is
+# what the engine reads; a duration that is zero or negative is a clip the viewer
+# never sees, whatever the timeline says about it.
+CLIP = re.compile(r'id="([^"]+)"[^>]*class="[^"]*\bclip\b[^"]*"[^>]*data-start="([-\d.]+)"'
+                  r'[^>]*data-duration="([-\d.]+)"')
+unseen = [(i, float(d)) for i, _s, d in CLIP.findall(body) if float(d) <= 0]
+
 missing = []
 for sel in targets:
     # "#in-door", "#tn-fig .fg-door", ".pill.no" - check the leading token, which
@@ -68,7 +82,12 @@ for i, n in sorted(dupes.items()):
     print(f'  DUPLICATE id="{i}" on {n} elements - a reveal lands on the first only')
 for sel, why in missing:
     print(f"  MATCHES NOTHING  {sel!r} - {why}")
-if dupes or missing:
-    print(f"{len(dupes) + len(missing)} selector fault(s) - an element is revealed twice or never")
+for i, d in unseen:
+    print(f'  NEVER ON SCREEN  id="{i}" has data-duration="{d}" - nothing in it is ever seen. '
+          f"A scene table out of spoken order does this: each scene's end is taken from the "
+          f"NEXT entry's start.")
+if dupes or missing or unseen:
+    n = len(dupes) + len(missing) + len(unseen)
+    print(f"{n} fault(s) - an element is revealed twice, never, or inside a clip nobody sees")
     sys.exit(1)
-print("every reveal has exactly one element to land on")
+print("every reveal has exactly one element to land on, inside a clip that is")
