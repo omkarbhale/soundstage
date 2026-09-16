@@ -120,3 +120,18 @@ the piece was for.
 | --- | --- | --- |
 | "two or three families, one of them monospace **only where a `code` prop needs it**" | Monospace with no `code` prop at all: the engraved plates, the measured tick labels and the counted units | [FAMILIES] still demands two families. The piece had no code in it and could not have - its listener has never seen a repository. The rule's reason is "the voice changes where the material does", and stamped metal is a different material from spoken type. The format should say **monospace is the machine-cut voice**, of which source is one case. |
 | "the set is built out of the real material: a screen captured off the product, a block of the actual code" | No `screen`, no `code`, no `components/figure.py` at all. The material floor is met with `chart` and `diagram` | [DRAWN NOT SHOWN] counts `screen`, `code`, `chart` and `diagram` together, so this is inside the letter of the rule. It is recorded because the spirit - capture, do not draw - is only half served, and a piece with no product to point at has no other option. |
+
+## What the first piece did not have to depart from
+
+Worth recording because it is the strongest thing that can be said about a format: a
+four-minute piece with 37 props, 28 moves and 22 acts was built end to end and **no rule
+had to be gone around**. Every refusal it hit was one of three things - a real defect in
+a guard (two, both fixed here), an interaction the format implies but does not state (one,
+now stated), or geometry that was simply wrong and had to be moved. The two departures
+above are both forced by what the piece is ABOUT, not by the format being wrong; each one
+sits inside the letter of its rule and is recorded for the spirit.
+
+The thresholds that cost the most work, in order, and all of them earned it: [ALL STOPS]
+(which is what turned a route into a room - fourteen props exist only to be passed),
+[DEAD HOLD] (the act budget), and [CENTRED] (which is what stopped every framing being a
+subject in the middle of an empty frame).
