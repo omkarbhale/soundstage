@@ -54,13 +54,23 @@ must be a framing target, and a target it is - against a [ALL STOPS] cap of 60%.
 small type on a **near-plane** prop: the apparent size is `px * s / depth`, so a near
 plane buys 1.6x for free and the framing can be wider.
 
-## An offset can turn a push into a travel
+## An offset can turn a push into a travel, and on a far wide it is enormous
 
 [CENTRED] pushes an author to offset most framings, and `off=` moves the camera. Two
 consecutive framings offset in **opposite** directions add their shifts to the distance
 the move crosses, which is what [NOT A PUSH] and [NOT A PULL] measure against
 `close_move` (1.0 frames). Offsetting the pair the same way costs nothing. Check the pair,
 not the framing.
+
+The size of that shift is not intuitive, because `off` is a fraction of the FRAME at the
+subject's distance and the camera lives in WORLD units:
+
+    world units moved = off * frame * depth / scale
+
+On a mid prop framed close (`depth` 1, `s` 1.2) an `off` of 0.09 moves the camera 144
+world units. On a far wall framed wide (`depth` 2.3, `s` 0.22) the same 0.09 moves it
+**1,800** - twelve times as far, and enough on its own to make the next move fail its
+kind. Offsets on far, wide framings are the ones to write small.
 
 ## Type is measured off a style declaration, never off an SVG attribute
 
