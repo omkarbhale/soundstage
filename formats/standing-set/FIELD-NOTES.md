@@ -12,6 +12,30 @@ into `SKILL.md` and delete it from here.
 
 ---
 
+**Before you write the shot list**  
+[The act budget caps the number of camera holds](#the-act-budget-caps-the-number-of-camera-holds)  
+[`NEVER READ` forces the smallest-type prop to be a destination](#never-read-forces-the-smallest-type-prop-to-be-a-destination)  
+[An offset can turn a push into a travel, and on a far wide it is enormous](#an-offset-can-turn-a-push-into-a-travel-and-on-a-far-wide-it-is-enormous)  
+[Far props lean in from the next room, and a tall far wall frames very wide](#far-props-lean-in-from-the-next-room-and-a-tall-far-wall-frames-very-wide)  
+
+**Looking at it and listening to it**  
+[`--freeze` was drawing the wrong framing, and every frame looked right](#--freeze-was-drawing-the-wrong-framing-and-every-frame-looked-right)  
+[Seek the timeline before rendering: `--freeze` cannot show the set performing](#seek-the-timeline-before-rendering---freeze-cannot-show-the-set-performing)  
+[A pause is not in the transcript, and the delivery check depends on it](#a-pause-is-not-in-the-transcript-and-the-delivery-check-depends-on-it)  
+
+**Cues, and what the aligner does to them**  
+[Two hazards the aligner adds to the README's list](#two-hazards-the-aligner-adds-to-the-readmes-list)  
+[`cue_check.py` reports zero cues on a set, and that is not a hole](#cuecheckpy-reports-zero-cues-on-a-set-and-that-is-not-a-hole)  
+
+**Sharp edges since fixed**  
+[Type is measured in both spellings of font-size now](#type-is-measured-in-both-spellings-of-font-size-now)  
+
+**What this piece did**  
+[Departures made by the first piece, and why](#departures-made-by-the-first-piece-and-why)  
+[What the first piece did not have to depart from](#what-the-first-piece-did-not-have-to-depart-from)  
+
+---
+
 ## The act budget caps the number of camera holds
 
 This was the first thing the first real piece hit and the most useful thing to know
