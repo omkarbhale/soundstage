@@ -331,7 +331,9 @@ way a typed highlight is. [HAND-DRIVEN]
   view the words asked for; three pushes in a row is a habit. [ONE MOVE]
 - **At most 40% of framings put their subject dead centre**, within 6% of the frame
   centre on both axes. Offset the rest with `off=`, which moves the camera and leaves the
-  props where they stand. A subject centred, level and still is the deck's own atom: one
+  props where they stand; it is measured in frames whatever distance the subject is at, and
+  it is refused when it would push that subject out of shot. `--why` prints the offset each
+  framing actually lands, which is the number this reads. A subject centred, level and still is the deck's own atom: one
   is a payoff, every one is a gallery. [CENTRED]
 
 ## Rest
