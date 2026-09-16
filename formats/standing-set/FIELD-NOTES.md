@@ -46,6 +46,34 @@ transcript spelling":
 The working rule is unchanged and is the README's: quote the part of the sentence that
 carries the meaning. Both of these were on function words at the edge of a phrase.
 
+## `cue_check.py` reports zero cues on a set, and that is not a hole
+
+It reads `t("literal")` calls, and a standing set writes its cues in a table that
+`S.move()` and `S.change()` resolve - so it prints "0 cue phrases checked" on a piece with
+thirty of them. Do not go and hand-write a list: that is the thing the README warns
+against, and the cues are covered twice already. `standing_set.render()` resolves every
+one and raises on a miss, which is the README's own "run the generator" check; and
+`set_check.py` then matches each of them against the real transcript and refuses
+[NOT SPOKEN] and [AMBIGUOUS]. Read the zero as "nothing for me here", not "nothing
+checked".
+
+## Far props lean in from the next room, and a tall far wall frames very wide
+
+Two consequences of the projection that decide where props go, and neither is obvious
+from the numbers:
+
+- A far prop lands at `(P - camera) * s / depth` from the centre, so at depth 2.3 it sits
+  **less than half as far off centre** as a mid prop at the same world position. A far
+  prop 2,600 units away in the NEXT region is only 1,100 mid-equivalent units away, and it
+  will be in shot. That is correct - the format wants props that persist and a camera that
+  finds them - but it means anything you want kept for later belongs on the **mid** plane,
+  not the far one.
+- A framing computed on a tall far surface is set by its HEIGHT, and at that scale the
+  frame is enormous horizontally: a 6,650-tall wall at depth 2.3 gives `s` 0.22, and the
+  frame is then 8,500 world units wide - wider than a whole region. Those framings are
+  establishing shots whether you meant them or not. Compose them as such, or frame the
+  surface together with a mid prop to tighten it.
+
 ## `NEVER READ` forces the smallest-type prop to be a destination
 
 [NO DETAIL] wants a prop setting type at 28px or less, and [NEVER READ] wants that type
