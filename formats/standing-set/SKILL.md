@@ -65,6 +65,10 @@ css, html, js = S.render(t, end=speech_end + 2.0)
 `t` is the composition's own cue resolver. Nothing in the camera is typed: name the
 props, get the framing.
 
+**A composition not built through `components/standing_set.py` is not in this format.**
+The component is what makes every rule below measurable; hand-written markup that looks
+like a set carries no manifest, and `set_check.py` refuses to certify it at all.
+
 ---
 
 # 1. The world
@@ -72,7 +76,8 @@ props, get the framing.
 Build the whole space first. The composition is written against a set that already
 exists, the way a crew walks onto a floor that is already built.
 
-- The world is **at least 3 frames on its long axis and 1.5 on its short**. A world the
+- The props **occupy at least 3 frames on their long axis and 1.5 on their short** -
+  measured across the props, not across the world declared around them. A space the
   camera can see at once is a poster, and travelling across it is a pan. [SMALL WORLD]
 - The camera works over **at least 4x of scale** across the piece. [ONE DISTANCE]
 - Props are placed at world coordinates once and never move to accommodate the camera.
@@ -200,8 +205,10 @@ way a typed highlight is. [HAND-DRIVEN]
 - An **event** is a prop that arrives anyway. It is rationed to **25% of the props**, and
   each one is caused by a prop already on screen when it fires. [ARRIVALS, UNCAUSED]
 - A **change** is a prop in a different state at the end than at the start: a screen
-  advanced, a diagram completed, a count moved, a door open. **At least 3**, each with a
-  tween that actually touches it. [STATIC]
+  advanced, a diagram completed, a count moved, a door open. **At least 3.** Each one is
+  answered by a tween that moves something on the frame - a prop's opacity nudged between
+  0.9 and 1 satisfies nothing - and that tween lands **within a second of the word that
+  announces it** (ADR-0003). [STATIC, OFF ITS BEAT]
 - Every prop is a destination is the failure this rations from the other side: **at most
   60% of props may be framing targets.** The rest is space the camera passes through, and
   it is what makes the film feel like a place. [ALL STOPS]
@@ -254,4 +261,6 @@ are refused anyway:
 | Every move a push                                                 | a transition [ONE MOVE] |
 | A framing typed by hand because it looked right                   | a highlight drawn by hand, in the third medium [HAND-DRIVEN] |
 | A title fixed to the frame over the top of the world              | an overlay [LOOSE]    |
+| A change declared, and a tween that moves nothing answering it    | a line written for the guard [STATIC] |
+| A big empty world with everything standing in one frame of it     | a poster [SMALL WORLD] |
 | The set ends exactly as it started                                | nothing was learned by going [NO PAYOFF] |

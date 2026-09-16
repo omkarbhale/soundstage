@@ -235,7 +235,8 @@ def main(argv):
     declared = {e["prop"] for e in m["events"]}
     ENTER = re.compile(r'tl\.(?:fromTo|from|set)\(\s*"#pr-([\w-]+)[^"]*"\s*,\s*\{([^}]*)\}')
     for pid, obj in ENTER.findall(raw):
-        if re.search(r"(?:autoAlpha|opacity)\s*:\s*0(?:\.0+)?\b", obj) and pid not in declared:
+        if re.search(r"(?:autoAlpha|opacity)\s*:\s*0(?:\.0+)?\s*(?:[,}]|$)", obj) \
+                and pid not in declared:
             fault("ARRIVES", f"prop {pid!r} starts invisible and is not a declared event - "
                              f"a prop that appears when the camera reaches it is a bullet")
     if len(m["events"]) > R["event_share"] * n:
@@ -244,13 +245,17 @@ def main(argv):
                           f"the viewer")
 
     # --- B. the space -------------------------------------------------------
-    long_r = max(world[0] / fw, world[1] / fh)
-    short_r = min(world[0] / fw, world[1] / fh)
+    # Measured across the props, not across the declared world: a big empty world with
+    # everything standing in one frame of it is still a poster.
+    spread = (max(p["at"][0] + p["size"][0] for p in props) - min(p["at"][0] for p in props),
+              max(p["at"][1] + p["size"][1] for p in props) - min(p["at"][1] for p in props))
+    long_r = max(spread[0] / fw, spread[1] / fh)
+    short_r = min(spread[0] / fw, spread[1] / fh)
     if long_r < R["world_long"] or short_r < R["world_short"]:
-        fault("SMALL WORLD", f"the world is {long_r:.2f} frames on its long axis and "
-                             f"{short_r:.2f} on its short - a standing set is at least "
-                             f"{R['world_long']}x{R['world_short']}, or the camera is panning "
-                             f"over a poster")
+        fault("SMALL WORLD", f"the props stand across {long_r:.2f} frames on the long axis and "
+                             f"{short_r:.2f} on the short - a standing set is at least "
+                             f"{R['world_long']}x{R['world_short']} of OCCUPIED space, or the "
+                             f"camera is panning over a poster")
     if n < R["props"]:
         fault("THIN SET", f"{n} props - a set carries at least {R['props']}, or the camera "
                           f"travels through nothing")
@@ -624,15 +629,36 @@ def main(argv):
     if len(m["changes"]) < R["changes"]:
         fault("STATIC", f"{len(m['changes'])} declared change(s) - at least {R['changes']}: the "
                         f"set is in a different state at the end than at the start")
-    stmts = re.findall(r'tl\.\w+\((.*?)\);', raw, re.S)
-    touched = set()
-    for st in stmts:
-        for pid in re.findall(r'"#pr-([\w-]+)', st):
-            touched.add(pid)
+    touched = {}
+    for st in re.findall(r'tl\.\w+\((.*?)\)\s*;', raw, re.S):
+        ids = re.findall(r'"#pr-([\w-]+)', st)
+        if not ids:
+            continue
+        pos = re.search(r",\s*([\d.]+)\s*$", st.strip())
+        # A tween that only carries a prop's opacity between 0.9 and 1 moves nothing on
+        # the frame. It is the cheapest way to answer this guard and it is not a change.
+        props_set = set(re.findall(r"([A-Za-z]\w*)\s*:", st))
+        noop = (props_set <= {"opacity", "autoAlpha", "duration", "ease", "delay"} and
+                all(0.9 <= float(v) <= 1.0 for v in
+                    re.findall(r"(?:opacity|autoAlpha)\s*:\s*([\d.]+)", st)))
+        for pid in ids:
+            touched.setdefault(pid, []).append(
+                (float(pos.group(1)) if pos else None, noop))
     for c in m["changes"]:
-        if c["prop"] not in touched:
+        runs = touched.get(c["prop"], [])
+        real = [(at, no) for at, no in runs if not no]
+        if not runs:
             fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is declared and nothing in "
                             f"the timeline touches that prop")
+        elif not real:
+            fault("STATIC", f"change {c['note']!r} on {c['prop']!r} is answered by a tween that "
+                            f"moves nothing on the frame - a change is a different state, not a "
+                            f"line that satisfies a guard")
+        elif not any(at is None or abs(at - c["at"]) <= 1.0 for at, _no in real):
+            fault("OFF ITS BEAT", f"change {c['note']!r} is cued on {c['cue']!r} at "
+                                  f"{c['at']:.1f}s and the nearest tween touching {c['prop']!r} "
+                                  f"is at {min((a for a, _n in real), key=lambda a: abs(a - c['at'])):.1f}s "
+                                  f"- a change happens on the word that announces it (ADR-0003)")
     live = {}
     for e in m["events"]:
         s = [sh for sh in shots if sh["at"] <= e["at"] + 1e-6][-1]
