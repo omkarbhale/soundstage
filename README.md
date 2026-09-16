@@ -374,6 +374,16 @@ because there is nothing to spot. Run it after building and before rendering, be
 other two. [ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md) has the
 argument.
 
+**When the narration is out of date, correct the picture, not the words.** The audio is
+locked (ADR-0003), so `note=("since this was recorded", "…")` puts a short factual line
+under the frame saying what the product does today. Two rules go with it. It must not go
+into the **captions** — a subtitle has to say what the voice says, and a corrected caption
+disagrees with the audio the viewer is hearing, which is a second wrong thing rather than
+a fix (`caption_check.py` refuses it anyway). And it is not drawn in `--warm`: in this
+house terracotta is a claim that something is *refused*, and a screen that has moved on
+since the recording is not a refusal. Write down, with the note, the exact sentence a
+re-record would change, so a later pass does not have to find it again.
+
 **A figure changes the layout around it, so re-check the frame.** A stack of cards that
 fits comfortably across 1580px does not fit in the 620px column beside a screenshot: it
 gets taller, and the last card renders off the bottom of the picture. The frame then

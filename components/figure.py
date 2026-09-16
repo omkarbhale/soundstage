@@ -96,6 +96,21 @@ CSS = """
                  text-align: center; max-width: 1320px; }
       .fig-cap b { color: var(--ink); font-weight: 650; }
 
+      /* A CORRECTION NOTE. What the product does TODAY, where the narration was
+         written against something else and the audio is locked.
+         It is NOT --warm: terracotta in this house is a claim that something is
+         refused, and a screen that has moved on since the recording is not a refusal.
+         It borrows the card's own kicker-and-body grammar rather than inventing a
+         second annotation language, so it reads as part of the frame and not as an
+         erratum slip pasted on. */
+      .fig-note { background: var(--card-2); border-radius: 18px; padding: 20px 26px;
+                  align-self: center; }
+      .fig-note .card-k { margin-bottom: 8px; }
+      .fig-note-v { font-size: 27px; line-height: 1.32; color: var(--ink-2); }
+      .fig-note-v b { color: var(--ink); font-weight: 650; }
+      .figrow .fig-note { padding: 16px 20px; }
+      .figrow .fig-note-v { font-size: 24px; }
+
       /* A figure-led scene: the frame is the content, so it gets the margins back.
          Content still clears the brandmark and the module name. */
       .scene-in.figful { padding: 78px 100px; gap: 30px; }
@@ -167,7 +182,7 @@ class Figures:
         return m
 
     def fig(self, name, el_id, *, mark=None, also=(), zoom=None, caption=None,
-            height=620, zoom_width=500, zoom_ratio=0.66, zoom_pad=1.35,
+            note=None, height=620, zoom_width=500, zoom_ratio=0.66, zoom_pad=1.35,
             chrome=True, cls=""):
         """One figure.
 
@@ -178,7 +193,8 @@ class Figures:
 
         Every id derives from `el_id`, so a generator can cue each piece on its own
         word and `id_check.py` still finds exactly one element for each:
-        `#<id>-frame`, `#<id>-m-<mark>`, `#<id>-t-<mark>`, `#<id>-z`, `#<id>-cap`."""
+        `#<id>-frame`, `#<id>-m-<mark>`, `#<id>-t-<mark>`, `#<id>-z`, `#<id>-cap`,
+        `#<id>-note`."""
         s = self.shot(name)
         bar = 30 if chrome else 0
         width = round(height * s["w"] / s["h"])
@@ -200,8 +216,19 @@ class Figures:
                  if zoom else "")
         cap = (f'<figcaption class="fig-cap" id="{el_id}-cap">{caption}</figcaption>'
                if caption else "")
+        # `note` is (kicker, body): a short, factual statement of what the product does
+        # today, for a frame whose narration was written against something else. The
+        # audio is locked (ADR-0003), so the correction goes on the picture rather than
+        # into the words - and never into the captions, which must say what the voice
+        # says or they are a second wrong answer rather than a fix.
+        # Capped at the frame's own width, in pixels, because `.fig` is a flex column
+        # that takes the width of its widest child - a long note would otherwise make
+        # the whole figure wider than the frame and push it off the picture.
+        nte = (f'<div class="fig-note" id="{el_id}-note" style="max-width:{width}px">'
+               f'<div class="card-k">{note[0]}</div>'
+               f'<div class="fig-note-v">{note[1]}</div></div>' if note else "")
         return (f'<figure class="fig {cls}" id="{el_id}">'
-                f'<div class="fig-row">{frame}{inset}</div>{cap}</figure>')
+                f'<div class="fig-row">{frame}{inset}</div>{cap}{nte}</figure>')
 
     # ---------------------------------------------------------------- pieces
     def _mark(self, name, mk, el_id, lit):
