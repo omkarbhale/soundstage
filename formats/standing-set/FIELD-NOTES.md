@@ -47,16 +47,12 @@ both of them found it at shot-list time rather than at planning time.
 
 ## `--freeze` was drawing the wrong framing, and every frame looked right
 
-Fixed in `set_check.py`, recorded because of how it hid. `--freeze` stamps a framing's
-transforms into the page as CSS; the timeline is still in that page, and **GSAP renders a
-`fromTo`'s FROM state the moment the tween is created**, paused timeline or not. An inline
-style beats a stylesheet rule whatever its specificity, so every frozen frame drew the
-LAST camera tween's start. Measured here: 13 `--freeze` calls, 3 distinct images.
-
-Nothing about the output says so. Each frame is a real framing of the real set, composed,
-lit and plausible - it is simply not the one asked for. The fix is `!important` on the
-three frozen properties, which is the one thing an inline style does not beat. **If you
-are looking at frozen frames and several of them are identical, this is what it was.**
+Fixed, and `set_check.py`'s own docstring now carries the mechanism. Kept here for the
+SIGNATURE, which is the part that is hard to recognise from the outside: **if several
+frozen frames come out identical, this was it.** Each one is a real, composed, plausible
+framing of the real set - simply not the one asked for - so there is nothing in the
+output to spot. Measured before the fix: 13 `--freeze` calls, 3 distinct images. Two
+productions hit it independently and neither noticed from the pictures.
 
 ## Seek the timeline before rendering: `--freeze` cannot show the set performing
 
@@ -196,13 +192,12 @@ kind. Offsets on far, wide framings are the ones to write small.
 
 ## Type is measured in both spellings of font-size now
 
-`<text font-size="56px">` is valid SVG and `components/standing_set.py` could not see it,
-so a correctly sized prop was refused for "carrying words and declaring no font-size" -
-twice in one afternoon, and the refusal does not say which spelling it wants. Fixed: the
-component reads both, and `_shape()` strips both, since it strips font-size before hashing
-a prop so [TWINS] compares the drawing rather than the words. Recorded because the two
-halves have to move together - reading the attribute without stripping it would let one
-drawing through twice by differing in a number.
+Fixed in `components/standing_set.py`, which carries the reasoning. One thing worth
+keeping: **`FONT_SIZE` and `_shape()`'s strip have to move together.** `_shape()` removes
+font-size before hashing a prop so that [TWINS] compares the drawing rather than the
+words, so widening what the component READS without widening what the hash STRIPS lets
+two copies of one drawing hash apart and walk past the rule. The same pairing will apply
+to whatever spelling gets added next.
 
 ## Departures made by the first piece, and why
 
