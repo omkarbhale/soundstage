@@ -37,6 +37,8 @@ this project rejects.
 - [0007](docs/adr/0007-the-narration-guards-live-in-the-studio.md) - The narration guards live in the studio
 - [0008](docs/adr/0008-a-re-voice-is-fitted-to-the-old-track.md) - A re-voice is fitted to the old track, line by line
 - [0009](docs/adr/0009-a-local-voice-and-a-local-aligner.md) - A local voice and a local aligner, behind the same two paths
+- [0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md) - A highlight is measured from the element, never drawn by hand
+- [0011](docs/adr/0011-captions-say-the-script-and-live-in-the-video.md) - Captions say the script, are timed by the transcript, and live in the video
 
 ## Making narration
 
@@ -110,6 +112,11 @@ part shares a codec, resolution, frame rate and audio layout, so it **checks tha
 to join mismatched parts** rather than producing a file that plays for one viewer and not another.
 It also checks the finished duration against the sum of the parts, because a concat that silently
 drops a part still produces a playable file.
+
+**The concat demuxer drops caption tracks**, measured rather than feared, and the joined file plays
+perfectly without them. So `join.py` re-assembles the parts' subtitle tracks onto the join, shifted
+by the same cumulative durations it already measures, and refuses a set of parts where only some
+carry captions rather than joining to a track that stops partway through.
 
 ## Speaking without an account
 
@@ -288,6 +295,12 @@ left behind - animates an empty set, with the same result.
 python3 id_check.py <composition>/index.html    # every reveal has one element to land on
 ```
 
+It refuses a third thing for the same reason: **a clip that is never on screen**. Measured in this
+repo's own corpus - a scene table listed out of spoken order gave one clip `data-duration="-63.59"`
+and let another overlay ninety-seven seconds of its module. Each scene's end is taken from the NEXT
+table entry's start, so a table out of order is the way that happens. Every reveal inside the
+negative clip had exactly one element to land on, and none of them were ever seen.
+
 Both fail the way the narration faults do. Nothing errors, nothing warns, `cue_check.py`
 still passes because every cue phrase still resolves, and the scene's **settled** frame is
 identical either way. The only frame that shows it is one sampled between the two cues -
@@ -318,6 +331,150 @@ It proves no timing. Every time it writes is invented, so a clean dry run says t
 is well-formed and says nothing about whether a reveal lands on its word - that is what the
 real chain and `review_frames.py` are for. Run it before the first take of a module, and again
 after any edit to a generator, and keep the real guards where they are.
+
+
+## Showing a screen, so someone can find it again
+
+A video that names a control should show it where it lives. The question a viewer
+actually has is **where is that**, and a tight crop of a button answers a different one -
+it shows what the button looks like and says nothing about its position. So a figure
+carries enough of the screen to learn the position from (the page it is on, the panel it
+sits in), and the highlight does the pointing. A magnified inset, for when the label has
+to be read as well as found, goes BESIDE the wide shot and never instead of it.
+
+`components/figure.py` is the component. A composition imports it, is told where the
+measured shots live, and asks for a figure:
+
+```python
+import figure
+F = figure.Figures(f"{D}/assets/shots")        # the path is owned here (ADR-0004)
+F.fig("screen-one", "f1",
+      mark=("name", "Name"),                   # ringed, named, spotlit
+      also=[("tenant", "Tenant")],             # ringed; pass None to ring without naming
+      zoom="name",                             # magnified beside the frame
+      caption="the card is the whole page")
+```
+
+Every id derives from the second argument - `#f1-frame`, `#f1-m-name`, `#f1-t-name`,
+`#f1-z`, `#f1-cap` - so each piece is cued on its own word like any other reveal, and
+`id_check.py` still finds exactly one element for each.
+
+**Never type a highlight's numbers.** The capture reads each element's own bounding box
+off the page and writes it beside the picture; the component places the ring from that
+file and stamps the shot and mark name on it.
+
+```
+python3 figure_check.py <composition>/index.html   # every ring is still the measured box
+```
+
+A hand-typed or stale box is the quietest fault in the set: the ring lands on the control
+NEXT to the one the narration named, and the frame looks exactly as finished either way -
+`cue_check.py` passes, `id_check.py` passes, and nobody reviewing a render spots it
+because there is nothing to spot. Run it after building and before rendering, beside the
+other two. [ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md) has the
+argument.
+
+**When the narration is out of date, correct the picture, not the words.** The audio is
+locked (ADR-0003), so `note=("since this was recorded", "…")` puts a short factual line
+under the frame saying what the product does today. Two rules go with it. It must not go
+into the **captions** — a subtitle has to say what the voice says, and a corrected caption
+disagrees with the audio the viewer is hearing, which is a second wrong thing rather than
+a fix (`caption_check.py` refuses it anyway). And it is not drawn in `--warm`: in this
+house terracotta is a claim that something is *refused*, and a screen that has moved on
+since the recording is not a refusal. Write down, with the note, the exact sentence a
+re-record would change, so a later pass does not have to find it again.
+
+**A figure changes the layout around it, so re-check the frame.** A stack of cards that
+fits comfortably across 1580px does not fit in the 620px column beside a screenshot: it
+gets taller, and the last card renders off the bottom of the picture. The frame then
+reads as a design with a lot of air at the top, and the card that fell off was the one
+carrying the point. Measured twice in one afternoon's work, both times by eye. Whatever
+the production uses to check it - the engine's own `snapshot`, or a browser measuring the
+laid-out page - check it after adding a figure to a scene that had none, and look at
+every scene rather than a sample.
+
+Capturing is the production's job, not the studio's - it drives whatever product the
+video is about - but two rules travel with the component. **Measure, do not type**, and
+**refuse rather than guess**: a mark selector that matches nothing, or matches more than
+one element, must fail the capture. The first match of an ambiguous selector is exactly
+the kind of answer that renders beautifully and points at the wrong control.
+
+## Captioning a module
+
+Captions are a soft subtitle track inside the video, and nowhere else. The viewer can
+turn them off, there is no sidecar file to keep in step, and nothing is burned into the
+picture where it would sit on top of a figure's callouts.
+
+```
+# the normal path: caption a finished module, leaving no sidecar behind
+python3 captions.py --style captions.json --into module.mp4 module-cc.mp4 \
+                    narration.txt <composition>/transcript.json --offset 2.0
+
+# prove the track that actually shipped
+python3 caption_check.py --style captions.json narration.txt --in module-cc.mp4
+
+# on demand, for a platform that strips or ignores a muxed track
+python3 captions.py --style captions.json narration.txt \
+                    <composition>/transcript.json out.srt --offset 2.0 --report
+```
+
+`--offset` is where the narration starts inside the video - the composition's opening
+card - and a caption timed without it is wrong by exactly that much.
+
+**The words come from the script, the times from the transcript.** Never caption from the
+transcript's own text: the aligner mishears, and a caption is read rather than matched, so
+the mishearing is printed on the screen. Measured here: a module whose first spoken word
+is `Screen` has `Scream` as transcript word zero. `caption_check.py` refuses a track that
+does not say the script word for word, which is what makes that rule enforceable.
+
+**Verify the track in the finished file, not an intermediate.** A subtitle track is off by
+default in most players, so a failed mux ships an uncaptioned video and nobody reviewing
+it notices. `--in` reads the stream back out and checks it. Re-encoding or trimming drops
+the track silently - any ffmpeg pass without `-map 0` - so re-run the caption pass after
+one. `join.py` re-assembles the parts' tracks onto a join for the same reason, and refuses
+a set of parts where only some carry captions.
+
+### Choosing the caption style
+
+soundstage holds no house style, so every value arrives in `--style` and a missing one
+refuses by name. Choosing them is judgement, and this is how to do it.
+
+**Start from the narration's pace, because it governs everything else.** Divide the
+script's words by the audio's length. At 160-171 words a minute - about 16 characters of
+speech a second - a caption is already at the top of comfortable adult reading, so cues
+must be SHORT AND FREQUENT rather than long and dense. A slower narration can carry longer
+cues; a faster one cannot, and no setting downstream can fix it without going out of sync.
+
+- `line_chars` / `lines` - 42 and 2 is what broadcast subtitling settled on and what a
+  viewer reads without tracking back. Go narrower if the frame is busy under the caption.
+- `cue_seconds` - the ceiling stops a cue outstaying its sentence and is enforced. The
+  floor is what a cue is held to *where the cue after it leaves room*: a two-word sentence
+  tail whose next cue follows immediately is merged back or brought on earlier, and where
+  neither is possible it stays short rather than overlapping. Readability there is
+  `hard_cps`'s job, not the floor's - three characters in under a second is not a flash.
+- `hold_seconds` / `gap_seconds` - a cue that vanishes on the last syllable reads as a
+  flicker, and two cues with no gap between them read as one.
+- `min_break_chars` - the shortest cue worth breaking a clause for. A boundary two words
+  in leaves a caption on screen long enough to read with nothing on it to read.
+- `fast_cps` / `hard_cps` - reading rate is partly the narrator's, so the first is
+  reported and only the second refuses.
+- `min_alignment` - below this the script and the transcript are not a pair, and every
+  line would be timed against the wrong audio.
+- `keep_together` - **the production's own vocabulary**, and the rule that matters most in
+  a course that teaches names. A named UI element or technical term must never be split
+  across two cues: "the session chip" must not arrive as "the session" and then "chip".
+  List the terms; the generator will not break inside one and the guard refuses a track
+  that does. Articles and numbers are held to their nouns and units by grammar rather than
+  by the list.
+
+**Break at the top of the ladder that fits**: end of sentence first, then strong
+punctuation - colon, semicolon, dash - then a clause boundary or conjunction, and only as
+a last resort a plain phrase break. The structure comes from the script, because that is
+where the punctuation already is; the clock comes from the aligned words.
+
+**A cue that names something on screen should be on screen with it.** Captions and figures
+are answering the same question, so cue a figure's ring on the same phrase the caption
+carries and they arrive together.
 
 ## Ending a module
 
