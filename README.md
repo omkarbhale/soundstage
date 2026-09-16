@@ -433,7 +433,12 @@ them renders perfectly and looks like a deck with a camera move on it.
 
 ```
 python3 set_check.py <composition>/index.html <composition>/transcript.json
+python3 set_check.py <composition>/index.html <composition>/transcript.json --why
 ```
+
+`--why` prints where every prop is seen and how much ground each move crosses, which is
+what props are placed against: a prop's reach depends on the plane it stands on, and no
+framing shows what a move passes over.
 
 It re-derives every camera transform from the manifest the component stamped into the
 document - the same argument as [ADR-0010](docs/adr/0010-a-highlight-is-measured-from-the-element.md),

@@ -93,7 +93,9 @@ palette changes because the camera went somewhere.
 - Two regions that meet differ by **25 degrees of hue or 0.12 of relative luminance**,
   and their accents differ by **40 degrees**. [SAME ROOM, SAME ACCENT]
 - **At most one region is neutral.** The rest are colours. [GREY]
-- Grounds, inks and accents are written as hex. [COLOUR]
+- Grounds, inks and accents are written as hex, and **a colour painted inside a prop is
+  a house variable or a hex clearing 4.5:1 against its own region's ground.** A declared
+  ink is a promise the props keep. [COLOUR, UNREADABLE]
 - In the order the camera first enters them, the grounds **lighten steadily, darken
   steadily, or turn one way round the wheel** - 0.04 of luminance a step, or 25 degrees
   a step and 70 in total. Three unrelated palettes are three decks in three colours.
@@ -112,9 +114,9 @@ read as a move.
 
 - **At least 3 planes carry props**, no plane holds more than **55%** of them, and the
   populated planes span **2.5x in depth**. [FLAT, SHALLOW]
-- **At least half of all framings carry a prop from another plane at 8% of the frame or
-  more.** A frame with one object on a background is a slide photographed at an angle.
-  [FLAT FRAME]
+- **Every framing carries another distance.** Props standing on planes other than the
+  subject's cover at least 8% of the frame, counted together. One object on a background
+  is a slide, whatever brought the camera there. [FLAT FRAME]
 - The near plane magnifies distance from the camera's centre. A near prop stands where
   the camera goes, or it is never seen. [UNSEEN]
 - Focus is a framing's property and blur is computed from it. A **rack** is the only way
@@ -138,6 +140,14 @@ several of them at once.
 
 - **At least 12 props, in at least 4 roles**, and at most **40%** of them specimens.
   [THIN SET, ONE NOTE, ALL WORDS]
+- **A role is what a prop is made of, not a word typed beside it.** A `screen` carries a
+  frame from `components/figure.py`; a `glyph` an `<svg>` or an `<img>`; a `chart` or a
+  `diagram` an `<svg>` or three drawn parts; a `surface` something drawn on it; a `code`
+  prop a monospace family; an `artifact` a drawn face. A text block labelled `chart` is a
+  text block. [ROLE]
+- **Furnish the route, not just the stops.** A prop that is not a framing target reaches
+  8% of the frame **during a move**. One that only ever appears where the camera stopped
+  is a destination that forgot to be named. [ALL STOPS]
 - **Every region has a surface on the deepest populated plane.** Props stand in a built
   space, not in a void with a colour behind it. [NO ARCHITECTURE]
 - **No two props share a role and a size.** Repeated identical objects belong inside one
@@ -152,8 +162,8 @@ several of them at once.
 
 Type is an object in the space with a position and a distance, not a label on a picture.
 
-- **At least 6 distinct sizes, spanning 6x.** A headline size and a body size is a deck.
-  [ONE SIZE, NO SCALE]
+- **At least 6 distinct sizes, spanning 6x**, counted where they are set on props. Six
+  sizes declared in the page and used on nothing is two sizes. [ONE SIZE, NO SCALE]
 - **Two or three families**, one of them monospace only where a `code` prop needs it.
   [FAMILIES]
 - **One prop sets type at 200px or more** in world units, and **one at 28px or less**.
@@ -190,6 +200,14 @@ way a typed highlight is. [HAND-DRIVEN]
 - **At least two props are framed again later from somewhere else** - a different scale
   or a different position. A set nobody returns to is a corridor, and nothing in a
   corridor persists. [NO RETURN]
+- **The camera is never over empty ground.** At a quarter, a half and three quarters of
+  every move, props that are not `surface` cover at least 12% of the frame. Cluster the
+  props at the destinations and the flights between them are transitions, and this format
+  has no transitions. [EMPTY TRAVEL]
+- **At most 40% of framings put their subject dead centre**, within 6% of the frame
+  centre on both axes. Offset the rest with `off=`, which moves the camera and leaves the
+  props where they stand. A subject centred, level and still is the deck's own atom: one
+  is a payoff, every one is a gallery. [CENTRED]
 
 ## Rest
 
@@ -202,14 +220,21 @@ way a typed highlight is. [HAND-DRIVEN]
 # 7. The set performs
 
 - **Props do not arrive.** Everything is there from the first frame; the camera finds it.
-  A prop that fades in when the camera reaches it is a bullet. [ARRIVES]
+  A prop that fades in when the camera reaches it is a bullet, and so is one held at zero
+  scale or parked a full box off its own position. [ARRIVES]
+- **A prop stands where it was placed.** The timeline moves a prop only where that prop
+  is a declared change or event. The camera goes to things; things do not slide over to
+  meet the camera. [RESTAGED]
 - An **event** is a prop that arrives anyway. It is rationed to **25% of the props**, and
   each one is caused by a prop already on screen when it fires. [ARRIVALS, UNCAUSED]
 - A **change** is a prop in a different state at the end than at the start: a screen
-  advanced, a diagram completed, a count moved, a door open. **At least 3.** Each one is
-  answered by a tween that moves something on the frame - a prop's opacity nudged between
-  0.9 and 1 satisfies nothing - and that tween lands **within a second of the word that
-  announces it** (ADR-0003). [STATIC, OFF ITS BEAT]
+  advanced, a diagram completed, a count moved, a door open. **At least 3, one per prop,
+  and never on a `surface`** - a wall does not do anything, and a change on the backdrop
+  is a change nobody sees. Each is written as a `fromTo`, so both states are on the page
+  to be measured, and moves its prop **1.5% of the frame, half its own box, 0.15 of
+  scale, 6 degrees, 0.5 of opacity, or to another colour**, within a second of the word
+  that announces it (ADR-0003). Anything smaller is a line written for the guard.
+  [STATIC, OFF ITS BEAT]
 - **At most 60% of props may be framing targets.** The rest is space the camera passes
   through on the way, and it is what makes the piece feel like a place rather than a
   route. A set where every prop is a destination is slides laid side by side. [ALL STOPS]
@@ -226,7 +251,10 @@ way a typed highlight is. [HAND-DRIVEN]
 
 1. Write the world: size, regions and their palette progression, planes.
 2. Place every prop. Say out loud what each one is and which region it stands in.
-3. Write the framings and the moves, cued from the narration.
+3. Write the framings and the moves, cued from the narration. `--why` prints where every
+   prop is seen and how much ground each move crosses; a prop's reach depends on its
+   plane and no framing shows what a move passes, so place props against that rather than
+   by eye.
 4. Declare the events and the changes, and write their tweens.
 5. `python3 dry_run.py narration.txt <composition>` then build, so every fault below
    surfaces before the narration is paid for.
@@ -236,7 +264,7 @@ way a typed highlight is. [HAND-DRIVEN]
 python3 cue_check.py <composition>/transcript.json <composition>/gen.py
 python3 id_check.py <composition>/index.html
 python3 figure_check.py <composition>/index.html
-python3 set_check.py <composition>/index.html <composition>/transcript.json
+python3 set_check.py <composition>/index.html <composition>/transcript.json [--why]
 ```
 
 `review_frames.py` picks the seconds to look at; `hyperframes snapshot --at` captures
@@ -262,6 +290,11 @@ are refused anyway:
 | Every move a push                                                 | a transition [ONE MOVE] |
 | A framing typed by hand because it looked right                   | a highlight drawn by hand, in the third medium [HAND-DRIVEN] |
 | A title fixed to the frame over the top of the world              | an overlay [LOOSE]    |
+| Props clustered at the stops, bare ground in between              | a transition [EMPTY TRAVEL] |
+| A change that moves half a pixel, or one declared on a wall       | a line written for the guard [STATIC] |
+| A text block labelled `chart`                                     | a text block [ROLE]   |
+| Every framing a subject centred, level and still                  | a gallery [CENTRED]   |
+| A prop slid into place to suit the camera                         | staging [RESTAGED]    |
 | A change declared, and a tween that moves nothing answering it    | a line written for the guard [STATIC] |
 | A big empty world with everything standing in one frame of it     | a poster [SMALL WORLD] |
 | The set ends exactly as it started                                | nothing was learned by going [NO PAYOFF] |

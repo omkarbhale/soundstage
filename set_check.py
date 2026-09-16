@@ -297,9 +297,35 @@ def cue_matches(tok, phrase):
     return [i for i in range(len(tok) - len(want) + 1) if tok[i:i + len(want)] == want]
 
 
+def why(props, shots, legs, planes, frame, targets):
+    """Where every prop is seen and how much ground each move crosses.
+
+    Placing props is the part of this format that cannot be done by eye: a prop's
+    reach depends on its plane, and the ground a move crosses is not visible in any
+    framing. Printed on demand with `--why`, beside whatever it refuses."""
+    mid = [c for _b, cams in legs for c in cams]
+    print(f"  {'prop':12s} {'role':9s} {'plane':5s} {'at a stop':>9s} {'in a move':>9s}  target")
+    for p in props:
+        a = max(seen(p, s, planes, frame) for s in shots)
+        b = max([seen(p, c, planes, frame) for c in mid] or [0.0])
+        print(f"  {p['id']:12s} {p['role']:9s} {p['plane']:5s} {a * 100:8.1f}% "
+              f"{b * 100:8.1f}%  {'yes' if p['id'] in targets else '-'}")
+    print(f"\n  {'move':24s} {'scale':>13s} {'frames':>7s}  ground at .25/.50/.75")
+    for (b, cams), a in zip(legs, shots):
+        mv = max(abs(b["cx"] - a["cx"]) * b["s"] / frame[0],
+                 abs(b["cy"] - a["cy"]) * b["s"] / frame[1])
+        g = "/".join(f"{covered(c, props, planes, frame) * 100:.0f}" for c in cams)
+        print(f"  {b['kind'] + ' ' + str(b['cue'])[:18]:24s} "
+              f"{a['s']:6.3f}->{b['s']:6.3f} {mv:7.2f}  {g}")
+    print()
+
+
 def main(argv):
+    show = "--why" in argv
+    argv = [a for a in argv if a != "--why"]
     if len(argv) != 2:
-        sys.exit("usage: set_check.py <composition>/index.html <composition>/transcript.json")
+        sys.exit("usage: set_check.py <composition>/index.html <composition>/transcript.json "
+                 "[--why]")
     path, tpath = argv
     raw = open(path, encoding="utf8").read()
     doc = Doc()
@@ -929,6 +955,8 @@ def main(argv):
     print(f"{path}")
     print(f"  {n} props on {len(used)} planes, {len(regions)} regions, {len(moves)} moves, "
           f"{rest / m['end'] * 100:.0f}% held")
+    if show:
+        why(props, shots, legs, planes, frame, targets)
     for f in FAULTS:
         print(f)
     if FAULTS:
