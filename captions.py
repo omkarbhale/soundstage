@@ -236,7 +236,17 @@ def cues(script, style):
         # and still be unlayable - a long word straddling the last line break leaves
         # one line over the limit with nowhere else to break. So the cue is shortened
         # until it lays out, rather than shipped with an over-long line.
-        while cut > i + 1 and lay(script[i:cut], style) is None:
+        #
+        # `keep` is checked HERE as well as where a break is chosen, and that is the
+        # point of this loop carrying it. Every break this function picks on purpose
+        # is already filtered against `keep`, but two paths arrive at a cut without
+        # asking: the fallback when a cue runs out of budget with no candidate
+        # boundary in it (`cut = j`), and this shortening loop itself. Both land
+        # wherever the arithmetic puts them, which is how "the voice you are" /
+        # "hearing" ships from the generator - and caption_check.py then refuses the
+        # track for splitting exactly that phrase. The generator must not emit what
+        # the guard refuses.
+        while cut > i + 1 and (cut in keep or lay(script[i:cut], style) is None):
             cut -= 1
         # A run with no legal break at all - one unsplittable term - still has to end
         # somewhere.
