@@ -369,8 +369,13 @@ def freeze(raw, m, which, out):
     css = []
     for name, depth in [("ground", 1.0)] + sorted(planes.items(), key=lambda kv: -kv[1]):
         x, y, sc, b = layer(depth, sh, planes, frame)
-        css.append(f"#sp-{name}{{transform:translate({x}px,{y}px) scale({sc});"
-                   f"transform-origin:0 0;filter:blur({b}px)}}")
+        # !important, because the timeline is in the page and GSAP's fromTo renders
+        # its FROM state the moment it is created. Without this every frozen frame
+        # draws the LAST camera tween's start - a plausible-looking frame of the
+        # wrong framing, identical for every --freeze in the piece, and nothing
+        # about it reads as broken.
+        css.append(f"#sp-{name}{{transform:translate({x}px,{y}px) scale({sc})!important;"
+                   f"transform-origin:0 0!important;filter:blur({b}px)!important}}")
     page = raw.replace("</style>", "\n" + "\n".join(css) + "\n</style>", 1)
     page = page.replace("<body>", f'<body style="margin:0;width:{frame[0]}px;'
                                   f'height:{frame[1]}px;overflow:hidden">', 1)
