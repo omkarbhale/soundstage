@@ -68,7 +68,9 @@ if not bad:
 
 for i in reversed(bad):
     lo, hi = max(0.0, words[i]["start"] - PAD), words[i]["end"] + PAD
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+    # The window is a stream copy, so it must keep the source's own container: copying
+    # WAV (PCM) into an .mp3 file fails, and any narration that is not MP3 never repaired.
+    with tempfile.NamedTemporaryFile(suffix=os.path.splitext(AUDIO)[1] or ".mp3", delete=False) as f:
         clip = f.name
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(lo), "-t", str(hi - lo),
                     "-i", AUDIO, "-c", "copy", clip], check=True)
