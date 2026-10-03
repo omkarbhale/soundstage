@@ -364,9 +364,29 @@ way a typed highlight is. [HAND-DRIVEN]
   as it has framings, every one of them over 2s needs an act, and an act is one prop
   doing one thing on its own beat. Twelve framings is twelve or thirteen acts on twelve
   different props - not the three [STATIC] asks for, which is the least a set may contain
-  rather than the number a film will need. Count the acts while the framings are being
-  written; finding the shortfall afterwards means inventing changes for props that were
-  never meant to have one, and those are the ones that look written for the guard.
+  rather than the number a film will need.
+
+**So the acts are the budget, and they decide the shot list.** Three rules multiply, and
+the product is not written anywhere else: every hold of 2s or more before the last word
+needs an act, no two acts may overlap and none may run under a moving camera [TWO AT
+ONCE], and a prop carries **one** change. A change is also bonded to the words - its cue
+sits in a line that NAMES the prop that moves - so only props the **script names** can
+carry one, and the dressing that [ALL STOPS] asks for buys nothing here.
+
+`acts = named props - surfaces + events`, and that is the most long holds a piece may
+have. **Count it before the script is finished**, not merely before the moves - the
+script is what decides which props may carry an act at all, so a piece that finds the
+shortfall afterwards can only invent changes for props that were never meant to have
+one, and those are the ones that look written for the guard. Knowing the number while
+writing means giving that many props a moment on purpose.
+
+**A gap of 0.8s to 2.0s is free.** It is under [DEAD HOLD]'s floor and at or over [NO
+LANDING]'s, so it needs no act and does not count toward a run of three. That is how a
+piece buys camera movement it cannot afford in acts: **pair** two moves, cueing the
+second a beat after the first - usually off the next sentence - so the camera crosses in
+two legs and lands once. It is a real shape, not a dodge, and it is the answer to a shot
+list that will not fit the budget. The others are fewer moves, or a script that names
+more of the set. Inventing a change to clear the number is the one wrong answer.
 
 # 7. The set performs
 
